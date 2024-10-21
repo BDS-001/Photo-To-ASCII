@@ -3,36 +3,39 @@ document.addEventListener('DOMContentLoaded', () => {
     const canvas = document.createElement('canvas');
     const context = canvas.getContext('2d');
     const asciiDisplay = document.getElementById('art')
-    const imgWidth = 300;
+    let imgWidth = 300;
 
     imageUpload.addEventListener('change', (event) => {
-      const file = event.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        
-        reader.onload = (e) => {
-          const uploadedImg = e.target.result;
-          const img = new Image();
-          
-          img.onload = () => {
-            const aspectRatio = img.width / img.height;
-            const imgHeight = (imgWidth / aspectRatio) / 1.6;
-        
-            canvas.width = imgWidth;
-            canvas.height = imgHeight;
-        
-            context.drawImage(img, 0, 0, imgWidth, imgHeight);
-            let pixelData = context.getImageData(0, 0, imgWidth, imgHeight).data;
-            
-            displayArt(convertToASCII(convertToGreyscale(pixelData)))
-          };
-  
-          img.src = uploadedImg;
-        };
-        
-        reader.readAsDataURL(file);
-      }
+      processImage(event.target.files[0])
     });
+
+    function processImage(file) {
+        if (file) {
+            const reader = new FileReader();
+            
+            reader.onload = (e) => {
+                const uploadedImg = e.target.result;
+                const img = new Image();
+                
+                img.onload = () => {
+                const aspectRatio = img.width / img.height;
+                const imgHeight = (imgWidth / aspectRatio) / 1.6;
+            
+                canvas.width = imgWidth;
+                canvas.height = imgHeight;
+            
+                context.drawImage(img, 0, 0, imgWidth, imgHeight);
+                let pixelData = context.getImageData(0, 0, imgWidth, imgHeight).data;
+                
+                displayArt(convertToASCII(convertToGreyscale(pixelData)))
+                };
+
+                img.src = uploadedImg;
+            };
+            
+            reader.readAsDataURL(file);
+        }
+    }
 
     function convertToGreyscale(pixelData) {
         const greyscaleData = new Uint8ClampedArray(pixelData.length/4);
@@ -47,8 +50,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function convertToASCII(greyscaleData) {
+        //[' ', '⣿', '⢿', '⠿', '⠟', '⣛', '⣩', '⣭', '⣶', '⣾', '⣷', '⣆', '⡇', '⠀', '⠁', '⠃', '⠈', '⠉', '⠋', '⠏'];
+        //[' ', '.', ',', ':', ';', '-', '~', '=', '+', '*', '#', '%', '@']
         const asciiIntensity = [' ', '.', ',', ':', ';', '-', '~', '=', '+', '*', '#', '%', '@'];
-        const reverseAsciiIntensity = ['@', '%', '#', '*', '+', '=', '~', '-', ';', ':', ',', '.', ' ']
         const artLines = [];
         const divider = Math.floor(255 / (asciiIntensity.length - 1));
     
