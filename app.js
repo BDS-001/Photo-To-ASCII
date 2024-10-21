@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 img.onload = () => {
                 const aspectRatio = img.width / img.height;
-                const imgHeight = (imgWidth / aspectRatio) / 1.6;
+                const imgHeight = (imgWidth / aspectRatio) / 2;
             
                 canvas.width = imgWidth;
                 canvas.height = imgHeight;
@@ -53,6 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
         //[' ', '⣿', '⢿', '⠿', '⠟', '⣛', '⣩', '⣭', '⣶', '⣾', '⣷', '⣆', '⡇', '⠀', '⠁', '⠃', '⠈', '⠉', '⠋', '⠏'];
         //[' ', '.', ',', ':', ';', '-', '~', '=', '+', '*', '#', '%', '@']
         const asciiIntensity = [' ', '.', ',', ':', ';', '-', '~', '=', '+', '*', '#', '%', '@'];
+        const reverseAsciiIntensity = ['@', '%', '#', '*', '+', '=', '~', '-', ';', ':', ',', '.', ' ']
         const artLines = [];
         const divider = Math.floor(255 / (asciiIntensity.length - 1));
     
