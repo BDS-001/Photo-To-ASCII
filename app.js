@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const canvas = document.createElement('canvas');
     const context = canvas.getContext('2d');
     const asciiDisplay = document.getElementById('art')
+    const imgWidth = 300;
 
     imageUpload.addEventListener('change', (event) => {
       const file = event.target.files[0];
@@ -15,8 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
           
           img.onload = () => {
             const aspectRatio = img.width / img.height;
-            const imgWidth = 100;
-            const imgHeight = imgWidth / aspectRatio;
+            const imgHeight = (imgWidth / aspectRatio) / 1.6;
         
             canvas.width = imgWidth;
             canvas.height = imgHeight;
@@ -24,7 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
             context.drawImage(img, 0, 0, imgWidth, imgHeight);
             let pixelData = context.getImageData(0, 0, imgWidth, imgHeight).data;
             
-            displayArt(convertToASCII(convertToGreyscale(pixelData), imgWidth))
+            displayArt(convertToASCII(convertToGreyscale(pixelData)))
           };
   
           img.src = uploadedImg;
@@ -46,8 +46,9 @@ document.addEventListener('DOMContentLoaded', () => {
         return greyscaleData
     }
     
-    function convertToASCII(greyscaleData, imgWidth) {
+    function convertToASCII(greyscaleData) {
         const asciiIntensity = [' ', '.', ',', ':', ';', '-', '~', '=', '+', '*', '#', '%', '@'];
+        const reverseAsciiIntensity = ['@', '%', '#', '*', '+', '=', '~', '-', ';', ':', ',', '.', ' ']
         const artLines = [];
         const divider = Math.floor(255 / (asciiIntensity.length - 1));
     
