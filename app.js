@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const context = canvas.getContext('2d');
     const asciiDisplay = document.getElementById('art');
     const imageSettings = document.getElementById('imageSettings');
-    let imgWidth = 300
+    let imgWidth = 150
     let contrastFactor = 1
     let reverseIntensity = false
     
