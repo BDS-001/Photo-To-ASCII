@@ -133,12 +133,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function applyContrast(greyscaleData) {
-        const contrastedData = new Uint8ClampedArray(greyscaleData.length);
-        for (let i = 0; i < greyscaleData.length; i++) {
-            const pixel = greyscaleData[i];
-            contrastedData[i] = Math.floor(((pixel / 255 - 0.5) * state.contrastFactor + 0.5) * 255);
-        }
-        return contrastedData;
+        return greyscaleData.map(pixel => Math.floor(((pixel / 255 - 0.5) * state.contrastFactor + 0.5) * 255))
     }
     
     function convertToASCII(greyscaleData) {
