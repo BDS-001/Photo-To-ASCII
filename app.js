@@ -176,4 +176,26 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         return artLines.join('\n');
     }
+
+    function convertToASCIIColorBrightness(pixelData, greyscaleData) {
+        const asciiIntensity = state.reverseIntensity ? ASCII_MAPS.reversed : ASCII_MAPS.standard
+        const artLines = [];
+        const divider = Math.floor(255 / (asciiIntensity.length - 1));
+    
+        for (let i = 0; i < greyscaleData.length; i += state.imgWidth) {
+            const line = [];
+            for (let j = 0; j < state.imgWidth; j++) {
+                const pixelIndex = (i + j) * 4
+                const red = pixelData[pixelIndex]
+                const green = pixelData[pixelIndex + 1]
+                const blue = pixelData[pixelIndex + 2]
+                const charindex = Math.min(Math.floor(greyscaleData[i + j] / divider), asciiIntensity.length - 1);
+                const character = asciiIntensity[charindex];
+                
+                line.push(`<span style="color: rgb(${red}, ${green}, ${blue})">${character}</span>`)
+            }
+            artLines.push(line.join(''));
+        }
+        return artLines.join('\n');
+    }
 });
