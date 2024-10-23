@@ -1,21 +1,30 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const imageUpload = document.getElementById('imageUpload');
-    const imgWidthInput = document.getElementById('imageWidth');
-    const imgHeightInput = document.getElementById('imageHeight');
-    const processMode = document.getElementById('mode')
+    const ASCII_MAPS = {
+        standard: ' _.,-=+:;cba!?0123456789$W#@Ñ',
+        reversed: 'Ñ@#W$9876543210?!abc;:+=-,._ '
+    }
+
+    const DEFUALT_SETTINGS = {
+        mode: 'greyscale',
+        imgWidth: 150,
+        imgHeight: 150,
+        contrastFactor: 1,
+        reverseIntensity : false,
+        maintainAspectRatio : false
+    }
+
+    const domElements = {
+        imageUpload : document.getElementById('imageUpload'),
+        imgWidthInput : document.getElementById('imageWidth'),
+        imgHeightInput : document.getElementById('imageHeight'),
+        modeSelect : document.getElementById('mode'),
+        asciiDisplay : document.getElementById('art'),
+        imageSettings : document.getElementById('imageSettings'),
+
+    }
 
     const canvas = document.createElement('canvas');
     const context = canvas.getContext('2d');
-    const asciiDisplay = document.getElementById('art');
-    const imageSettings = document.getElementById('imageSettings');
-
-    let mode = 'greyscale'
-    let imgWidth = 150
-    let imgHeight = 150
-    let aspectRatio
-    let contrastFactor = 1
-    let reverseIntensity = false
-    let maintainAspectRatio = false
     
     imageSettings.addEventListener('change', (event) => {
         const imageFile = imageUpload.files[0]
