@@ -2,13 +2,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const imageUpload = document.getElementById('imageUpload');
     const imgWidthInput = document.getElementById('imageWidth');
     const imgHeightInput = document.getElementById('imageHeight');
-    const maintainAspectRatioInput = document.getElementById('maintainAspectRatio')
+    const processMode = document.getElementById('mode')
 
     const canvas = document.createElement('canvas');
     const context = canvas.getContext('2d');
     const asciiDisplay = document.getElementById('art');
     const imageSettings = document.getElementById('imageSettings');
 
+    let mode = 'greyscale'
     let imgWidth = 150
     let imgHeight = 150
     let aspectRatio
@@ -17,12 +18,14 @@ document.addEventListener('DOMContentLoaded', () => {
     let maintainAspectRatio = false
     
     imageSettings.addEventListener('change', (event) => {
+        const imageFile = imageUpload.files[0]
+        if (event.target.name === 'mode') mode = event.target.value
         if (event.target.name === 'imageWidth') handleImgDimensions(event.target.name, parseInt(event.target.value))
         if (event.target.name === 'imageHeight') handleImgDimensions(event.target.name, parseInt(event.target.value))
         if (event.target.name === 'contrastFactor') contrastFactor = parseFloat(event.target.value)
         if (event.target.name === 'reverseIntensity') reverseIntensity = event.target.checked
         if (event.target.name === 'maintainAspectRatio') handleImgDimensions(event.target.name, event.target.checked)
-        processImage(imageUpload.files[0]);
+        processImage(imageFile);
     });
     
     function processImage(file) {
@@ -35,7 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 img.onload = () => {
                     aspectRatio = img.width / img.height;
-                    imgHeight = maintainAspectRatio ? Math.floor((imgWidth / aspectRatio) / 2) : imgHeight;
+                    
                 
                     canvas.width = imgWidth;
                     canvas.height = imgHeight;
@@ -43,7 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     context.drawImage(img, 0, 0, imgWidth, imgHeight);
                     let pixelData = context.getImageData(0, 0, imgWidth, imgHeight).data;
                     
-                    displayArt(convertToASCII(applyContrast(convertToGreyscale(pixelData))));
+                    if (mode === 'greyscale') displayArt(convertToASCII(applyContrast(convertToGreyscale(pixelData))));
                 };
                 img.src = uploadedImg;
             };
@@ -55,21 +58,23 @@ document.addEventListener('DOMContentLoaded', () => {
     function handleImgDimensions(name, value) {
         if (name === 'maintainAspectRatio') {
             maintainAspectRatio = value
-            imgHeight = Math.floor((imgWidth / aspectRatio) / 2)
-            imgHeightInput.value = imgHeight
+            if (aspectRatio) {
+                imgHeight = Math.floor((imgWidth / aspectRatio) / 2)
+                imgHeightInput.value = imgHeight
+            }
             return
         }
 
         if (name === 'imageWidth') {
             imgWidth = value
-            if (maintainAspectRatio) imgHeight = Math.floor((imgWidth / aspectRatio) / 2)
+            if (maintainAspectRatio && aspectRatio) imgHeight = Math.floor((imgWidth / aspectRatio) / 2)
             imgHeightInput.value = imgHeight
             return
         }
 
         if (name === 'imageHeight') {
             imgHeight = value
-            if (maintainAspectRatio) imgWidth = Math.floor((imgHeight * aspectRatio) * 2)
+            if (maintainAspectRatio && aspectRatio) imgWidth = Math.floor((imgHeight * aspectRatio) * 2)
             imgWidthInput.value = imgWidth
             return
         }
