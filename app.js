@@ -68,7 +68,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (name === 'imageHeight') {
-            height = value
+            imgHeight = value
             if (maintainAspectRatio) imgWidth = Math.floor((imgHeight * aspectRatio) * 2)
             imgWidthInput.value = imgWidth
             return
