@@ -84,6 +84,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     let pixelData = context.getImageData(0, 0, state.imgWidth, state.imgHeight).data;
                     
                     if (state.mode === 'greyscale') displayArt(convertToASCII(applyContrast(convertToGreyscale(pixelData))));
+                    if (state.mode === 'color') displayArt(convertToASCIIColor(pixelData));
                 };
                 img.src = uploadedImg;
             };
@@ -146,7 +147,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const line = [];
             for (let j = 0; j < state.imgWidth; j++) {
                 const index = Math.min(Math.floor(greyscaleData[i + j] / divider), asciiIntensity.length - 1);
-                line.push(asciiIntensity[index]);
+                const character = asciiIntensity[index];
+                line.push(character)
             }
             artLines.push(line.join(''));
         }
@@ -155,5 +157,23 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function displayArt(artData) {
         domElements.asciiDisplay.innerHTML = `<pre>${artData}</pre>`;
+    }
+
+    function convertToASCIIColor(pixelData) {
+        const pixelCount = pixelData.length / 4
+        const artLines = [];
+    
+        for (let i = 0; i < pixelCount; i += state.imgWidth) {
+            const line = [];
+            for (let j = 0; j < state.imgWidth; j++) {
+                const pixelIndex = (i + j) * 4
+                const red = pixelData[pixelIndex]
+                const green = pixelData[pixelIndex + 1]
+                const blue = pixelData[pixelIndex + 2]
+                line.push(`<span style="color: rgb(${red}, ${green}, ${blue})">@</span>`)
+            }
+            artLines.push(line.join(''));
+        }
+        return artLines.join('\n');
     }
 });
