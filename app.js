@@ -66,8 +66,8 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function convertToASCII(greyscaleData) {
         const asciiIntensity = reverseIntensity ? 
-            [' ', '.', ',', ':', ';', '-', '~', '=', '+', '*', '#', '%', '@'] :
-            ['@', '%', '#', '*', '+', '=', '~', '-', ';', ':', ',', '.', ' '];
+            'Ñ@#W$9876543210?!abc;:+=-,._ ' :
+            ' _.,-=+:;cba!?0123456789$W#@Ñ';
         const artLines = [];
         const divider = Math.floor(255 / (asciiIntensity.length - 1));
     
