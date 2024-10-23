@@ -71,6 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
             reader.onload = (e) => {
                 const uploadedImg = e.target.result;
                 const img = new Image();
+                img.src = uploadedImg;
                 
                 img.onload = () => {
                     state.aspectRatio = img.width / img.height;
