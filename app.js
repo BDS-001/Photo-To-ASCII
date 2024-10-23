@@ -1,10 +1,13 @@
 document.addEventListener('DOMContentLoaded', () => {
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    
     const ASCII_MAPS = {
         standard: ' _.,-=+:;cba!?0123456789$W#@Ñ',
         reversed: 'Ñ@#W$9876543210?!abc;:+=-,._ '
     }
 
-    const DEFUALT_SETTINGS = {
+    const DEFAULT_SETTINGS = {
         mode: 'greyscale',
         imgWidth: 150,
         imgHeight: 150,
@@ -23,20 +26,44 @@ document.addEventListener('DOMContentLoaded', () => {
 
     }
 
-    const canvas = document.createElement('canvas');
-    const context = canvas.getContext('2d');
+    const state = {
+        ...DEFAULT_SETTINGS,
+        aspectRatio: null,
+        currentImage: null
+    }
+
+    const settingHandlers = {
+        mode: (e) => state.mode = e.target.value,
+        imageWidth: (e) => handleImgDimensions('imageWidth', parseInt(e.target.value) || DEFAULT_SETTINGS.imgWidth),
+        imageHeight: (e) => handleImgDimensions('imageHeight', parseInt(e.target.value) || DEFAULT_SETTINGS.imgHeight),
+        contrastFactor: (e) => state.contrastFactor = parseFloat(e.target.value) || DEFAULT_SETTINGS.contrastFactor,
+        reverseIntensity: (e) => state.reverseIntensity = e.target.checked,
+        maintainAspectRatio: (e) => handleImgDimensions('maintainAspectRatio', e.target.checked)
+    }
     
-    imageSettings.addEventListener('change', (event) => {
-        const imageFile = imageUpload.files[0]
-        if (event.target.name === 'mode') mode = event.target.value
-        if (event.target.name === 'imageWidth') handleImgDimensions(event.target.name, parseInt(event.target.value))
-        if (event.target.name === 'imageHeight') handleImgDimensions(event.target.name, parseInt(event.target.value))
-        if (event.target.name === 'contrastFactor') contrastFactor = parseFloat(event.target.value)
-        if (event.target.name === 'reverseIntensity') reverseIntensity = event.target.checked
-        if (event.target.name === 'maintainAspectRatio') handleImgDimensions(event.target.name, event.target.checked)
+    domElements.imageSettings.addEventListener('change', handleSettingsChange)
+    domElements.imageUpload.addEventListener('change', handleImageUpload)
+    
+    function handleSettingsChange(e) {
+        const handler = settingHandlers[e.target.name]
+        if (handler) {
+            handler(e)
+            if (state.currentImage) processImage(state.currentImage)
+        }
+    }
+
+    function handleImageUpload(e) {
+        const imageFile = e.target.files[0]
+        if (!imageFile) return
+        if (!imageFile.type.startsWith('image/')) {
+            alert('Please upload an image file');
+            return;
+        }
+
+        state.currentImage = imageFile;
         processImage(imageFile);
-    });
-    
+    }
+
     function processImage(file) {
         if (file) {
             const reader = new FileReader();
@@ -46,16 +73,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 const img = new Image();
                 
                 img.onload = () => {
-                    aspectRatio = img.width / img.height;
+                    state.aspectRatio = img.width / img.height;
                     
                 
-                    canvas.width = imgWidth;
-                    canvas.height = imgHeight;
+                    canvas.width = state.imgWidth;
+                    canvas.height = state.imgHeight;
                 
-                    context.drawImage(img, 0, 0, imgWidth, imgHeight);
-                    let pixelData = context.getImageData(0, 0, imgWidth, imgHeight).data;
+                    context.drawImage(img, 0, 0, state.imgWidth, state.imgHeight);
+                    let pixelData = context.getImageData(0, 0, state.imgWidth, state.imgHeight).data;
                     
-                    if (mode === 'greyscale') displayArt(convertToASCII(applyContrast(convertToGreyscale(pixelData))));
+                    if (state.mode === 'greyscale') displayArt(convertToASCII(applyContrast(convertToGreyscale(pixelData))));
                 };
                 img.src = uploadedImg;
             };
@@ -66,25 +93,29 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function handleImgDimensions(name, value) {
         if (name === 'maintainAspectRatio') {
-            maintainAspectRatio = value
-            if (aspectRatio) {
-                imgHeight = Math.floor((imgWidth / aspectRatio) / 2)
-                imgHeightInput.value = imgHeight
+            state.maintainAspectRatio = value;
+            if (state.aspectRatio) {
+                state.imgHeight = Math.floor((state.imgWidth / state.aspectRatio) / 2);
+                domElements.imgHeightInput.value = state.imgHeight;
             }
             return
         }
 
         if (name === 'imageWidth') {
-            imgWidth = value
-            if (maintainAspectRatio && aspectRatio) imgHeight = Math.floor((imgWidth / aspectRatio) / 2)
-            imgHeightInput.value = imgHeight
+            state.imgWidth = value;
+            if (state.maintainAspectRatio && state.aspectRatio) {
+                state.imgHeight = Math.floor((state.imgWidth / state.aspectRatio) / 2);
+                domElements.imgHeightInput.value = state.imgHeight;
+            }
             return
         }
 
         if (name === 'imageHeight') {
-            imgHeight = value
-            if (maintainAspectRatio && aspectRatio) imgWidth = Math.floor((imgHeight * aspectRatio) * 2)
-            imgWidthInput.value = imgWidth
+            state.imgHeight = value;
+            if (state.maintainAspectRatio && state.aspectRatio) {
+                state.imgWidth = Math.floor((state.imgHeight * state.aspectRatio) * 2);
+                domElements.imgWidthInput.value = state.imgWidth;
+            }
             return
         }
     }
@@ -105,21 +136,19 @@ document.addEventListener('DOMContentLoaded', () => {
         const contrastedData = new Uint8ClampedArray(greyscaleData.length);
         for (let i = 0; i < greyscaleData.length; i++) {
             const pixel = greyscaleData[i];
-            contrastedData[i] = Math.floor(((pixel / 255 - 0.5) * contrastFactor + 0.5) * 255);
+            contrastedData[i] = Math.floor(((pixel / 255 - 0.5) * state.contrastFactor + 0.5) * 255);
         }
         return contrastedData;
     }
     
     function convertToASCII(greyscaleData) {
-        const asciiIntensity = reverseIntensity ? 
-            'Ñ@#W$9876543210?!abc;:+=-,._ ' :
-            ' _.,-=+:;cba!?0123456789$W#@Ñ';
+        const asciiIntensity = state.reverseIntensity ? ASCII_MAPS.reversed : ASCII_MAPS.standard
         const artLines = [];
         const divider = Math.floor(255 / (asciiIntensity.length - 1));
     
-        for (let i = 0; i < greyscaleData.length; i += imgWidth) {
+        for (let i = 0; i < greyscaleData.length; i += state.imgWidth) {
             const line = [];
-            for (let j = 0; j < imgWidth; j++) {
+            for (let j = 0; j < state.imgWidth; j++) {
                 const index = Math.min(Math.floor(greyscaleData[i + j] / divider), asciiIntensity.length - 1);
                 line.push(asciiIntensity[index]);
             }
@@ -129,6 +158,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function displayArt(artData) {
-        asciiDisplay.innerHTML = `<pre>${artData}</pre>`;
+        domElements.asciiDisplay.innerHTML = `<pre>${artData}</pre>`;
     }
 });
