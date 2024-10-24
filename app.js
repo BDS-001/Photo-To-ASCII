@@ -298,7 +298,8 @@ document.addEventListener('DOMContentLoaded', () => {
         modeSelect : document.getElementById('mode'),
         asciiDisplay : document.getElementById('art'),
         imageSettings : document.getElementById('imageSettings'),
-        maintainAspectRatio : document.getElementById('maintainAspectRatio')
+        maintainAspectRatio : document.getElementById('maintainAspectRatio'),
+        fontSize : document.getElementById('fontSize')
 
     }
 
@@ -315,6 +316,11 @@ document.addEventListener('DOMContentLoaded', () => {
     domElements.imageUpload.addEventListener('change', handleImageUpload)
     
     async function handleSettingsChange(e) {
+        if (e.target.name === 'fontSize') {
+            domElements.asciiDisplay.style.fontSize = `${e.target.value}px`
+            return
+        }
+
         const handler = settingHandlers[e.target.name]
         if (handler) {
             handler(e)
