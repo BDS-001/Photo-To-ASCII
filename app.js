@@ -32,6 +32,12 @@ document.addEventListener('DOMContentLoaded', () => {
         currentImage: null
     }
 
+    const imageProcessingModes = {
+        greyscale: (pixelData) => displayArt(convertToASCII(applyContrast(convertToGreyscale(pixelData)))),
+        color: (pixelData) => displayArt(convertToASCIIColor(pixelData)),
+        colorBrightnessMap: (pixelData) => displayArt(convertToASCIIColorBrightness(pixelData, convertToGreyscale(pixelData))),
+    }
+
     const settingHandlers = {
         mode: (e) => state.mode = e.target.value,
         imageWidth: (e) => handleImgDimensions('imageWidth', parseInt(e.target.value) || DEFAULT_SETTINGS.imgWidth),
@@ -82,9 +88,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                     context.drawImage(img, 0, 0, state.imgWidth, state.imgHeight);
                     let pixelData = context.getImageData(0, 0, state.imgWidth, state.imgHeight).data;
-                    
-                    if (state.mode === 'greyscale') displayArt(convertToASCII(applyContrast(convertToGreyscale(pixelData))));
-                    if (state.mode === 'color') displayArt(convertToASCIIColor(pixelData));
+                    const imageProcessor = imageProcessingModes[state.mode]
+                    imageProcessor(pixelData)
                 };
                 img.src = uploadedImg;
             };
