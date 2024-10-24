@@ -141,7 +141,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const artLines = [];
     
         for (let i = 0; i < greyscaleData.length; i += state.imgWidth) {
-            const line = [];
+            const result = [];
             for (let j = 0; j < state.imgWidth; j++) {
                 const index = Math.min(Math.floor(greyscaleData[i + j] / state.asciiDivider), asciiIntensity.length - 1);
                 const character = asciiIntensity[index];
