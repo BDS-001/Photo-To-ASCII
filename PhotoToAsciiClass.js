@@ -6,7 +6,7 @@ class PhotoToAsciiProcessor {
     }
 
     static DEFAULT_SETTINGS = {
-        mode: 'greyscale',
+        mode: 'grayscale',
         imgWidth: 150,
         imgHeight: 150,
         contrastFactor: 1,
