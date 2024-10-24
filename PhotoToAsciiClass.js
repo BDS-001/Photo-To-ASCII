@@ -138,6 +138,28 @@ class PhotoToAsciiProcessor {
         );
     }
 
+    applyGuassianBlur() {
+        const guassianBlurPixelArray = new Uint8ClampedArray(this.pixelData)
+    }
+
+    generateGaussianKernel(radius = 2) {
+        const kernel = new Float32Array(2 * radius + 1);
+        const sigma = radius/3;
+        let sum = 0;
+        
+        for (let i = -radius; i <= radius; i++) {
+            const exp = Math.exp(-(i * i) / (2 * sigma * sigma));
+            kernel[i + radius] = exp;
+            sum += exp;
+        }
+        
+        for (let i = 0; i < kernel.length; i++) {
+            kernel[i] /= sum;
+        }
+        
+        return kernel;
+    }
+
     processToGrayscaleAscii() {
         const asciiIntensity = this.settings.reverseIntensity 
             ? PhotoToAsciiProcessor.ASCII_MAPS.reversed 
