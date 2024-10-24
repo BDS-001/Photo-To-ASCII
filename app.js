@@ -29,7 +29,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const state = {
         ...DEFAULT_SETTINGS,
         aspectRatio: null,
-        currentImage: null
+        currentImage: null,
+        asciiDivider: Math.floor(255 / (ASCII_MAPS.standard.length - 1))
     }
 
     const imageProcessingModes = {
@@ -71,30 +72,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function processImage(file) {
-        if (file) {
-            const reader = new FileReader();
-            
-            reader.onload = (e) => {
-                const uploadedImg = e.target.result;
-                const img = new Image();
-                img.src = uploadedImg;
-                
-                img.onload = () => {
-                    state.aspectRatio = img.width / img.height;
-                    
-                
-                    canvas.width = state.imgWidth;
-                    canvas.height = state.imgHeight;
-                
-                    context.drawImage(img, 0, 0, state.imgWidth, state.imgHeight);
-                    let pixelData = context.getImageData(0, 0, state.imgWidth, state.imgHeight).data;
-                    const imageProcessor = imageProcessingModes[state.mode]
-                    imageProcessor(pixelData)
-                };
-                img.src = uploadedImg;
-            };
-            
-            reader.readAsDataURL(file);
+        if (!file) return
+        const img = new Image();
+        img.src = URL.createObjectURL(file);
+        
+        img.onload = () => {
+            state.aspectRatio = img.width / img.height;
+        
+            canvas.width = state.imgWidth;
+            canvas.height = state.imgHeight;
+        
+            context.drawImage(img, 0, 0, state.imgWidth, state.imgHeight);
+            let pixelData = context.getImageData(0, 0, state.imgWidth, state.imgHeight).data;
+            URL.revokeObjectURL(img.src)
+
+            const imageProcessor = imageProcessingModes[state.mode]
+            imageProcessor(pixelData)
         }
     }
     
@@ -146,12 +139,11 @@ document.addEventListener('DOMContentLoaded', () => {
     function convertToASCII(greyscaleData) {
         const asciiIntensity = state.reverseIntensity ? ASCII_MAPS.reversed : ASCII_MAPS.standard
         const artLines = [];
-        const divider = Math.floor(255 / (asciiIntensity.length - 1));
     
         for (let i = 0; i < greyscaleData.length; i += state.imgWidth) {
             const line = [];
             for (let j = 0; j < state.imgWidth; j++) {
-                const index = Math.min(Math.floor(greyscaleData[i + j] / divider), asciiIntensity.length - 1);
+                const index = Math.min(Math.floor(greyscaleData[i + j] / state.asciiDivider), asciiIntensity.length - 1);
                 const character = asciiIntensity[index];
                 line.push(character)
             }
@@ -185,7 +177,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function convertToASCIIColorBrightness(pixelData, greyscaleData) {
         const asciiIntensity = state.reverseIntensity ? ASCII_MAPS.reversed : ASCII_MAPS.standard
         const artLines = [];
-        const divider = Math.floor(255 / (asciiIntensity.length - 1));
     
         for (let i = 0; i < greyscaleData.length; i += state.imgWidth) {
             const line = [];
@@ -194,7 +185,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const red = pixelData[pixelIndex]
                 const green = pixelData[pixelIndex + 1]
                 const blue = pixelData[pixelIndex + 2]
-                const charindex = Math.min(Math.floor(greyscaleData[i + j] / divider), asciiIntensity.length - 1);
+                const charindex = Math.min(Math.floor(greyscaleData[i + j] / state.asciiDivider), asciiIntensity.length - 1);
                 const character = asciiIntensity[charindex];
                 
                 line.push(`<span style="color: rgb(${red}, ${green}, ${blue})">${character}</span>`)
