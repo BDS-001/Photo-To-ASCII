@@ -276,13 +276,14 @@ document.addEventListener('DOMContentLoaded', () => {
         modeSelect : document.getElementById('mode'),
         asciiDisplay : document.getElementById('art'),
         imageSettings : document.getElementById('imageSettings'),
+        maintainAspectRatio : document.getElementById('maintainAspectRatio')
 
     }
 
     const settingHandlers = {
         mode: (e) => ImageProcessor.updateSettings(e.target.name, e.target.value),
-        imageWidth: (e) => ImageProcessor.updateSettings(e.target.name, parseInt(e.target.value)),
-        imageHeight: (e) => ImageProcessor.updateSettings(e.target.name, parseInt(e.target.value)),
+        imgWidth: (e) => ImageProcessor.updateSettings(e.target.name, parseInt(e.target.value)),
+        imgHeight: (e) => ImageProcessor.updateSettings(e.target.name, parseInt(e.target.value)),
         contrastFactor: (e) => ImageProcessor.updateSettings(e.target.name, parseFloat(e.target.value)),
         reverseIntensity: (e) => ImageProcessor.updateSettings(e.target.name, e.target.checked),
         maintainAspectRatio: (e) => ImageProcessor.updateSettings(e.target.name, e.target.checked)
@@ -295,8 +296,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const handler = settingHandlers[e.target.name]
         if (handler) {
             handler(e)
-        }
+        } 
         const artData = await ImageProcessor.processImage(domElements.imageUpload.files[0])
+        if ((e.target.name === 'imgWidth' || e.target.name === 'maintainAspectRatio') && domElements.maintainAspectRatio.checked) domElements.imgHeightInput.value = ImageProcessor.settings.imgHeight
+        if (e.target.name === 'imgHeight' && domElements.maintainAspectRatio.checked) domElements.imgWidthInput.value = ImageProcessor.settings.imgWidth
+       
         displayArt(artData)
     }
 
