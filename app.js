@@ -325,11 +325,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (handler) {
             handler(e)
         } 
-        const artData = await ImageProcessor.processImage(domElements.imageUpload.files[0])
+
         if ((e.target.name === 'imgWidth' || e.target.name === 'maintainAspectRatio') && domElements.maintainAspectRatio.checked) domElements.imgHeightInput.value = ImageProcessor.settings.imgHeight
         if (e.target.name === 'imgHeight' && domElements.maintainAspectRatio.checked) domElements.imgWidthInput.value = ImageProcessor.settings.imgWidth
        
-        displayArt(artData)
+        if (domElements.imageUpload.files[0]) {
+            const artData = await ImageProcessor.processImage(domElements.imageUpload.files[0])
+            displayArt(artData)
+        }
     }
 
     async function handleImageUpload(e) {
@@ -340,8 +343,10 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const artData = await ImageProcessor.processImage(imageFile);
-        displayArt(artData)
+        if (domElements.imageUpload.files[0]) {
+            const artData = await ImageProcessor.processImage(imageFile);
+            displayArt(artData)
+        }
     }
     
     function displayArt(artData) {
