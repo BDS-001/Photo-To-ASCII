@@ -14,12 +14,8 @@ class PhotoToAsciiProcessor {
         maintainAspectRatio : false
     }
 
-    constructor(canvas) {
-        if (!canvas) {
-            throw new Error('Canvas is required');
-        }
-
-        this.canvas = canvas
+    constructor() {
+        this.canvas = document.createElement('canvas');
         this.context = this.canvas.getContext('2d')
         this.settings = {
             ...PhotoToAsciiProcessor.DEFAULT_SETTINGS,
@@ -288,8 +284,7 @@ class PhotoToAsciiProcessor {
 
 
 document.addEventListener('DOMContentLoaded', () => {
-    const canvas = document.createElement('canvas');
-    const ImageProcessor = new PhotoToAsciiProcessor(canvas)
+    const ImageProcessor = new PhotoToAsciiProcessor()
 
     const domElements = {
         imageUpload : document.getElementById('imageUpload'),
