@@ -1,5 +1,192 @@
-#imageSettings {
+/* Page Color Scheme */
+:root {
+    --bg-primary: #1e1e2e;
+    --bg-secondary: #313244;
+    --text-primary: #cdd6f4;
+    --border-color: #45475a;
+    --accent-color: #89b4fa;
+    --shadow-color: rgba(0, 0, 0, 0.2);
+    --accent-shadow: rgba(137, 180, 250, 0.2);
+}
+
+
+/* main styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    min-height: 100vh;
+    padding: 2rem;
+}
+
+main {
+    margin: 0 auto;
     display: flex;
+    gap: 2rem;
     flex-wrap: wrap;
-    gap: 10px;
+}
+
+/* form styles */
+
+form {
+    background-color: var(--bg-secondary);
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px var(--shadow-color);
+    min-width: 300px;
+    flex: 0 1 auto;
+}
+
+.setting {
+    margin-bottom: 1.2rem;
+}
+
+label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    font-size: 1.2rem;
+}
+
+input[type="file"] {
+    width: 100%;
+    padding: 0.5rem;
+    background-color: var(--bg-primary);
+    border: 2px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-primary);
+    cursor: pointer;
+    font-size: 1.1rem;
+}
+
+input[type="number"] {
+    position: relative;
+    padding-right: 3rem;
+    height: 3rem;
+}
+
+
+input[type="number"],
+select {
+    width: 100%;
+    padding: 0.6rem;
+    background-color: var(--bg-primary);
+    border: 2px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 1.1rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+input[type="number"]:focus,
+select:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 3px var(--accent-shadow);
+}
+
+select {
+    cursor: pointer;
+}
+
+input[type="checkbox"] {
+    appearance: none;
+    width: 1.8rem;
+    height: 1.8rem;
+    border: 2px solid var(--border-color);
+    border-radius: 4px;
+    background-color: var(--bg-primary);
+    cursor: pointer;
+    vertical-align: middle;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+input[type="checkbox"]:checked {
+    background-color: var(--accent-color);
+    border-color: var(--accent-color);
+    position: relative;
+}
+
+input[type="checkbox"]:checked::after {
+    content: '✓';
+    position: absolute;
+    color: var(--bg-primary);
+    font-size: 1.2rem;
+    font-weight: bold;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+}
+
+input[type="checkbox"]:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 3px var(--accent-shadow);
+}
+
+.setting:has(input[type="checkbox"]) {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+}
+
+.setting:has(input[type="checkbox"]) label {
+    margin-bottom: 0;
+    flex: 1;
+}
+
+fieldset {
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    background-color: var(--bg-primary);
+}
+
+legend {
+    padding: 0 0.5rem;
+    font-weight: bold;
+    color: var(--accent-color);
+    font-size: 1.3rem;
+}
+
+fieldset:hover {
+    border-color: var(--accent-color);
+    transition: border-color 0.2s ease;
+}
+
+fieldset .setting:last-child {
+    margin-bottom: 0;
+}
+
+/* Art output area */
+#art {
+    background-color: var(--bg-secondary);
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px var(--shadow-color);
+    flex: 1;
+    min-width: 300px;
+    white-space: pre;
+    overflow: auto;
+    text-align: center;
+}
+
+/* screen size styles */
+@media (max-width: 768px) {
+    body {
+        padding: 1rem;
+    }
+    main {
+        gap: 1rem;
+    }
+    form, #art {
+        min-width: 100%;
+    }
 }
