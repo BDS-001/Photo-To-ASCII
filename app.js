@@ -1,3 +1,111 @@
+class PhotoToAsciiProcessor {
+    static ASCII_MAPS = {
+        standard: ' _.,-=+:;cba!?0123456789$W#@Ñ',
+        reversed: 'Ñ@#W$9876543210?!abc;:+=-,._ ',
+
+    }
+
+    static DEFAULT_SETTINGS = {
+        mode: 'greyscale',
+        imgWidth: 150,
+        imgHeight: 150,
+        contrastFactor: 1,
+        reverseIntensity : false,
+        maintainAspectRatio : false
+    }
+
+    constructor(canvas) {
+        if (!canvas) {
+            throw new Error('Canvas is required');
+        }
+
+        this.canvas = canvas
+        this.context = this.canvas.getContext('2d')
+        this.settings = {
+            ...PhotoToAsciiProcessor.DEFAULT_SETTINGS,
+            aspectRatio: null,
+            currentImage: null,
+            asciiDivider: Math.floor(255 / (PhotoToAsciiProcessor.ASCII_MAPS.standard.length - 1))
+        }
+    }
+
+    _updateSettings = {
+        mode: (value) => this.settings.mode = value,
+        imageWidth: (value) => this.settings.imgWidth = value,
+        imageHeight: (value) => this.settings.imgHeight = value,
+        contrastFactor: (value) => this.settings.contrastFactor = value,
+        reverseIntensity: (value) => this.settings.reverseIntensity = value,
+        maintainAspectRatio: (value) => this.settings.maintainAspectRatio = value,
+    }
+
+    updateSettings(setting, value) {
+        this._updateSettings[setting](value)
+    }
+
+    async loadImage(file) {
+        if (!file) throw new Error('No file provided');
+        if (this.settings.currentImage?.element?.src) {
+            URL.revokeObjectURL(this.settings.currentImage.element.src);
+        }
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            
+            img.onload = () => {
+                this.settings.currentImage = {
+                    file: file,
+                    element: img,
+                    originalWidth: img.width,
+                    originalHeight: img.height,
+                    pixelData: this.capturePixelData(img)
+                };
+                
+                this.settings.aspectRatio = img.width / img.height;
+                
+                if (this.settings.maintainAspectRatio) {
+                    this.settings.imgHeight = Math.floor((this.settings.imgWidth / this.settings.aspectRatio) / 2);
+                }
+                resolve(img);
+            };
+            img.onerror = () => {
+                reject(new Error('Failed to load image'));
+            };
+            img.src = URL.createObjectURL(file);
+        });
+    }
+
+    capturePixelData(img) {
+        this.canvas.width = this.settings.imgWidth;
+        this.canvas.height = this.settings.imgHeight;
+    
+        this.context.drawImage(img, 0, 0, this.settings.imgWidth, this.settings.imgHeight);
+        return this.context.getImageData(0, 0, this.settings.imgWidth, this.settings.imgHeight).data;
+    }
+
+    async processImage() {
+        
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 document.addEventListener('DOMContentLoaded', () => {
     const canvas = document.createElement('canvas');
     const context = canvas.getContext('2d');
