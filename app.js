@@ -168,14 +168,19 @@ class PhotoToAsciiProcessor {
     
         for (let i = 0; i < contrastedData.length; i += this.settings.imgWidth) {
             const line = [];
-            whitespace = ''
+            let whitespace = ''
             for (let j = 0; j < this.settings.imgWidth; j++) {
                 const index = Math.min(
                     Math.floor(contrastedData[i + j] / this.settings.asciiDivider), 
                     asciiIntensity.length - 1
                 );
                 const character = asciiIntensity[index];
-                character === '⠀' ? whitespace += '⠀' : line.push(whitespace + character)
+                if (character === '⠀') {
+                    whitespace += '⠀'
+                } else {
+                    line.push(whitespace + character)
+                    whitespace = ''
+                }
             }
             artLines.push(line.join(''));
         }
