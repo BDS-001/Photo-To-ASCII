@@ -18,13 +18,15 @@ class PhotoToAsciiProcessor {
 
     constructor() {
         this.canvas = document.createElement('canvas');
-        this.context = this.canvas.getContext('2d')
+        this.context = this.canvas.getContext('2d', {alpha: false, willReadFrequently: true})
         this.settings = {
             ...PhotoToAsciiProcessor.DEFAULT_SETTINGS,
             aspectRatio: null,
             currentImage: null,
             asciiDivider: Math.floor(255 / (PhotoToAsciiProcessor.ASCII_MAPS.standard.length - 1))
         }
+        this._luminanceBuffer = new Float64Array(1024)
+        this._lineBuffer = new Array(1024)
     }
 
     _updateSettings = {
@@ -68,11 +70,20 @@ class PhotoToAsciiProcessor {
 
     async loadImage(file) {
         if (!file) throw new Error('No file provided');
+
         if (this.settings.currentImage?.element?.src) {
             URL.revokeObjectURL(this.settings.currentImage.element.src);
         }
+
+        if (this.settings.currentImage) {
+            this.settings.currentImage.pixelData = null;
+            this.settings.currentImage.pixelLuminanceData = null;
+            this.settings.currentImage.element = null;
+        }
+
         return new Promise((resolve, reject) => {
             const img = new Image();
+            const objectUrl = createObjectURL(file)
             
             img.onload = () => {
                 this.settings.currentImage = {
@@ -89,12 +100,14 @@ class PhotoToAsciiProcessor {
                 if (this.settings.maintainAspectRatio) {
                     this.settings.imgHeight = Math.floor((this.settings.imgWidth / this.settings.aspectRatio) / 2);
                 }
+
+                URL.revokeObjectURL(objectUrl)
                 resolve(img);
             };
             img.onerror = () => {
                 reject(new Error('Failed to load image'));
             };
-            img.src = URL.createObjectURL(file);
+            img.src = objectUrl
         });
     }
 
