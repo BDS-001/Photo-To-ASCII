@@ -14,7 +14,15 @@ class ImageToAsciiProcessor {
             diagonal1: '/',
             diagonal2: '\\',
             empty: ' '
-        }
+        },
+        brailleEdges : {
+            horizontal: '⠤',
+            vertical: '⠇', 
+            diagonal1: '⠔',
+            diagonal2: '⠢',
+            empty: '⠀'
+        },
+        braille2 : ['⠀', '⣿']
     }
 
     static DEFAULT_SETTINGS = {
@@ -352,7 +360,74 @@ class ImageToAsciiProcessor {
         return artLines.join('\n');
     }
 
-    processSobelToAscii() {
+    processSobelToAsciiOutline() {
+        const directionChars = ImageToAsciiProcessor.ASCII_MAPS.standardEdges;
+        const shading = this.settings.reverseIntensity 
+            ? ImageToAsciiProcessor.ASCII_MAPS.standardReversed 
+            : ImageToAsciiProcessor.ASCII_MAPS.standard;
+        const height = this.settings.imgHeight;
+        const width = this.settings.imgWidth;
+        
+        const pixels = this.guassianPixelLuminanceData;
+        const artLines = [];
+        
+        for (let y = 1; y < height - 1; y++) {
+            const line = [];
+            for (let x = 1; x < width - 1; x++) {
+                const pixelIndex = y * width + x;
+                
+                // Horizontal gradient
+                const gx = (
+                    -1 * pixels[pixelIndex - 1 - width] +
+                    1 * pixels[pixelIndex + 1 - width] +
+                    -2 * pixels[pixelIndex - 1] +
+                    2 * pixels[pixelIndex + 1] +
+                    -1 * pixels[pixelIndex - 1 + width] +
+                    1 * pixels[pixelIndex + 1 + width]
+                ) / 8;
+                
+                // Vertical gradient
+                const gy = (
+                    -1 * pixels[pixelIndex - width - 1] +
+                    -2 * pixels[pixelIndex - width] +
+                    -1 * pixels[pixelIndex - width + 1] +
+                    1 * pixels[pixelIndex + width - 1] +
+                    2 * pixels[pixelIndex + width] +
+                    1 * pixels[pixelIndex + width + 1]
+                ) / 8;
+                
+                const magnitude = Math.sqrt(gx * gx + gy * gy);
+                const angle = Math.atan2(gy, gx) * (180 / Math.PI);
+                
+                let char;
+                if (magnitude < 50) {
+                    char = directionChars.empty
+                } else {
+                    const normalizedAngle = angle < 0 ? angle + 360 : angle;
+                    
+                    if ((normalizedAngle >= 337.5 || normalizedAngle < 22.5) || 
+                        (normalizedAngle >= 157.5 && normalizedAngle < 202.5)) {
+                        char = directionChars.horizontal;
+                    } else if ((normalizedAngle >= 22.5 && angle < 67.5) || 
+                              (normalizedAngle >= 202.5 && normalizedAngle < 247.5)) {
+                        char = directionChars.diagonal1;
+                    } else if ((normalizedAngle >= 67.5 && normalizedAngle < 112.5) || 
+                              (normalizedAngle >= 247.5 && normalizedAngle < 292.5)) {
+                        char = directionChars.vertical;
+                    } else {
+                        char = directionChars.diagonal2;
+                    }
+                }
+                
+                line.push(char);
+            }
+            artLines.push(line.join(''));
+        }
+        
+        return artLines.join('\n');
+    }
+
+    processSobelToAsciiFill() {
         const directionChars = ImageToAsciiProcessor.ASCII_MAPS.standardEdges;
         const shading = this.settings.reverseIntensity 
             ? ImageToAsciiProcessor.ASCII_MAPS.standardReversed 
@@ -423,6 +498,70 @@ class ImageToAsciiProcessor {
         return artLines.join('\n');
     }
 
+    processSobelToBraille() {
+        const directionChars = ImageToAsciiProcessor.ASCII_MAPS.brailleEdges; 
+        const height = this.settings.imgHeight;
+        const width = this.settings.imgWidth;
+        
+        const pixels = this.guassianPixelLuminanceData;
+        const artLines = [];
+        
+        for (let y = 1; y < height - 1; y++) {
+            const line = [];
+            for (let x = 1; x < width - 1; x++) {
+                const pixelIndex = y * width + x;
+                
+                // Horizontal gradient
+                const gx = (
+                    -1 * pixels[pixelIndex - 1 - width] +
+                    1 * pixels[pixelIndex + 1 - width] +
+                    -2 * pixels[pixelIndex - 1] +
+                    2 * pixels[pixelIndex + 1] +
+                    -1 * pixels[pixelIndex - 1 + width] +
+                    1 * pixels[pixelIndex + 1 + width]
+                ) / 8;
+                
+                // Vertical gradient
+                const gy = (
+                    -1 * pixels[pixelIndex - width - 1] +
+                    -2 * pixels[pixelIndex - width] +
+                    -1 * pixels[pixelIndex - width + 1] +
+                    1 * pixels[pixelIndex + width - 1] +
+                    2 * pixels[pixelIndex + width] +
+                    1 * pixels[pixelIndex + width + 1]
+                ) / 8;
+                
+                const magnitude = Math.sqrt(gx * gx + gy * gy);
+                const angle = Math.atan2(gy, gx) * (180 / Math.PI);
+                
+                let char;
+                if (magnitude < 50) {
+                    char = directionChars.empty
+                } else {
+                    const normalizedAngle = angle < 0 ? angle + 360 : angle;
+                    
+                    if ((normalizedAngle >= 337.5 || normalizedAngle < 22.5) || 
+                        (normalizedAngle >= 157.5 && normalizedAngle < 202.5)) {
+                        char = directionChars.horizontal;
+                    } else if ((normalizedAngle >= 22.5 && angle < 67.5) || 
+                              (normalizedAngle >= 202.5 && normalizedAngle < 247.5)) {
+                        char = directionChars.diagonal1;
+                    } else if ((normalizedAngle >= 67.5 && normalizedAngle < 112.5) || 
+                              (normalizedAngle >= 247.5 && normalizedAngle < 292.5)) {
+                        char = directionChars.vertical;
+                    } else {
+                        char = directionChars.diagonal2;
+                    }
+                }
+                
+                line.push(char);
+            }
+            artLines.push(line.join(''));
+        }
+        
+        return artLines.join('\n');
+    }
+
     //========================
     // Main Processing Method
     //========================
@@ -438,8 +577,12 @@ class ImageToAsciiProcessor {
                 return this.processToBrightnessColoredAscii();
             case 'grayscaleBraille':
                 return this.processToGrayscaleBraille()
-            case 'edgeDetection':
-                return this.processSobelToAscii()
+            case 'edgeDetectionOutline':
+                return this.processSobelToAsciiOutline()
+            case 'edgeDetectionFill':
+                return this.processSobelToAsciiFill()
+            case 'edgeDetectionBraille':
+                return this.processSobelToBraille()
             default:
                 throw new Error(`Unsupported mode: ${mode}`);
         }
