@@ -38,42 +38,20 @@ class PhotoToAsciiProcessor {
     // Settings Management
     //========================
     
-    _updateSettings = {
-        mode: (value) => this.settings.mode = value,
-        imgWidth: (value) => this.settings.imgWidth = value,
-        imgHeight: (value) => this.settings.imgHeight = value,
-        contrastFactor: (value) => this.settings.contrastFactor = value,
-        reverseIntensity: (value) => this.settings.reverseIntensity = value,
-        maintainAspectRatio: (value) => this.settings.maintainAspectRatio = value,
-    }
-
     updateSettings(setting, value) {
-        this._updateSettings[setting](value)
-        this.handleImageDimensions(setting)
-    }
-
-    handleImageDimensions(setting) {
-        if (!this.settings.aspectRatio) return
-
-        if (setting === 'maintainAspectRatio') {
-            if (this.settings.aspectRatio) {
-                this._updateSettings.imgHeight(Math.floor((this.settings.imgWidth / this.settings.aspectRatio) / 2))
-            }
-            return
+        if (!(setting in PhotoToAsciiProcessor.DEFAULT_SETTINGS)) {
+            throw new Error(`Invalid setting: ${setting}`);
         }
+        this.settings[setting] = value;
 
-        if (setting === 'imgWidth') {
-            if (this.settings.maintainAspectRatio && this.settings.aspectRatio) {
-                this._updateSettings.imgHeight(Math.floor((this.settings.imgWidth / this.settings.aspectRatio) / 2))
+        if (this.settings.aspectRatio) {
+            if (setting === 'maintainAspectRatio' || setting === 'imgWidth') {
+                if (this.settings.maintainAspectRatio) {
+                    this.settings.imgHeight = Math.floor((this.settings.imgWidth / this.settings.aspectRatio) / 2);
+                }
+            } else if (setting === 'imgHeight' && this.settings.maintainAspectRatio) {
+                this.settings.imgWidth = Math.floor((this.settings.imgHeight * this.settings.aspectRatio) * 2);
             }
-            return
-        }
-
-        if (setting === 'imgHeight') {
-            if (this.settings.maintainAspectRatio && this.settings.aspectRatio) {
-                this._updateSettings.imgWidth(Math.floor((this.settings.imgHeight * this.settings.aspectRatio) * 2))
-            }
-            return
         }
     }
 
