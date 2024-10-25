@@ -7,7 +7,14 @@ class ImageToAsciiProcessor {
         standard: ' _.,-=+:;cba!?0123456789$W#@Ñ',
         standardReversed: 'Ñ@#W$9876543210?!abc;:+=-,._ ',
         braille : ['⠀', '⠁', '⠃', '⠇', '⠏', '⠟', '⠿', '⡿', '⣿'],
-        brailleReversed : ['⣿', '⡿', '⠿', '⠟', '⠏', '⠇', '⠃', '⠁', '⠀']
+        brailleReversed : ['⣿', '⡿', '⠿', '⠟', '⠏', '⠇', '⠃', '⠁', '⠀'],
+        standardEdges : {
+            horizontal: '─',
+            vertical: '│',
+            diagonal1: '/',
+            diagonal2: '\\',
+            empty: ' '
+        }
     }
 
     static DEFAULT_SETTINGS = {
@@ -84,6 +91,7 @@ class ImageToAsciiProcessor {
                     originalHeight: img.height,
                     pixelData: this.capturePixelData(img),
                     pixelLuminanceData: null,
+                    guassianPixelLuminanceData: null,
                 };
                 
                 this.settings.aspectRatio = img.width / img.height;
@@ -108,9 +116,16 @@ class ImageToAsciiProcessor {
     
     get pixelLuminanceData() {
         if (!this.settings.currentImage?.pixelLuminanceData) {
-            this.settings.currentImage.pixelLuminanceData = this.calculateLuminance()
+            this.settings.currentImage.pixelLuminanceData = this.calculateLuminance(this.pixelData)
         }
         return this.settings.currentImage.pixelLuminanceData
+    }
+
+    get guassianPixelLuminanceData() {
+        if (!this.settings.currentImage?.guassianPixelLuminanceData) {
+            this.settings.currentImage.guassianPixelLuminanceData = this.calculateLuminance(this.applyGuassianBlur())
+        }
+        return this.settings.currentImage.guassianPixelLuminanceData
     }
 
     get pixelData() {
@@ -132,12 +147,12 @@ class ImageToAsciiProcessor {
         return this.context.getImageData(0, 0, this.settings.imgWidth, this.settings.imgHeight).data;
     }
 
-    calculateLuminance() {
-        const luminanceData = new Uint8ClampedArray(this.pixelData.length / 4);
+    calculateLuminance(pixelData) {
+        const luminanceData = new Uint8ClampedArray(pixelData.length / 4);
         for (let i = 0; i < luminanceData.length; i++) {
-            const Red = this.pixelData[i * 4];
-            const Green = this.pixelData[(i * 4) + 1];
-            const Blue = this.pixelData[(i * 4) + 2];
+            const Red = pixelData[i * 4];
+            const Green = pixelData[(i * 4) + 1];
+            const Blue = pixelData[(i * 4) + 2];
     
             luminanceData[i] = Math.floor(0.299 * Red + 0.587 * Green + 0.114 * Blue);
         }
@@ -168,8 +183,67 @@ class ImageToAsciiProcessor {
         return kernel;
     }
 
-    applyGuassianBlur() {
-        const guassianBlurPixelArray = new Uint8ClampedArray(this.pixelData)
+    applyGuassianBlur(radius = 2) {
+        const pixels = this.pixelData
+        const firstPixelArray = new Uint8ClampedArray(pixels.length)
+        const kernel = this.generateGaussianKernel(radius)
+        const width = this.settings.imgWidth
+        const height = this.settings.imgHeight
+        
+        //horizontal first
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                let red = 0, green = 0, blue = 0, alpha = 0
+                let weightSum = 0
+                
+                for (let i = -radius; i <= radius; i++) {
+                    const positionX = Math.min(Math.max(x + i, 0), width - 1)
+                    const indexX = (y * width + positionX) * 4
+                    const weight = kernel[i + radius]
+                    
+                    red += pixels[indexX] * weight
+                    green += pixels[indexX + 1] * weight
+                    blue += pixels[indexX + 2] * weight
+                    alpha += pixels[indexX + 3] * weight
+                    weightSum += weight
+                }
+                
+                const pixelOriginIndex = (y * width + x) * 4
+                firstPixelArray[pixelOriginIndex] = red / weightSum
+                firstPixelArray[pixelOriginIndex + 1] = green / weightSum
+                firstPixelArray[pixelOriginIndex + 2] = blue / weightSum
+                firstPixelArray[pixelOriginIndex + 3] = alpha / weightSum
+            }
+        }
+        
+        //vertical second
+        const finalPixelArray = new Uint8ClampedArray(pixels.length)
+        for (let x = 0; x < width; x++) {
+            for (let y = 0; y < height; y++) {
+                let red = 0, green = 0, blue = 0, alpha = 0
+                let weightSum = 0
+                
+                for (let i = -radius; i <= radius; i++) {
+                    const positionY = Math.min(Math.max(y + i, 0), height - 1)
+                    const indexY = (positionY * width + x) * 4
+                    const weight = kernel[i + radius]
+                    
+                    red += firstPixelArray[indexY] * weight
+                    green += firstPixelArray[indexY + 1] * weight
+                    blue += firstPixelArray[indexY + 2] * weight
+                    alpha += firstPixelArray[indexY + 3] * weight
+                    weightSum += weight
+                }
+                
+                const pixelOriginIndex = (y * width + x) * 4
+                finalPixelArray[pixelOriginIndex] = red / weightSum
+                finalPixelArray[pixelOriginIndex + 1] = green / weightSum
+                finalPixelArray[pixelOriginIndex + 2] = blue / weightSum
+                finalPixelArray[pixelOriginIndex + 3] = alpha / weightSum
+            }
+        }
+        
+        return finalPixelArray
     }
 
     //========================
@@ -275,6 +349,77 @@ class ImageToAsciiProcessor {
         return artLines.join('\n');
     }
 
+    processSobelToAscii() {
+        const directionChars = ImageToAsciiProcessor.ASCII_MAPS.standardEdges
+        const shading = this.settings.reverseIntensity 
+        ? ImageToAsciiProcessor.ASCII_MAPS.standardReversed 
+        : ImageToAsciiProcessor.ASCII_MAPS.standard
+        const height = this.settings.imgHeight;
+        const width = this.settings.imgWidth;
+        
+        const pixels = this.guassianPixelLuminanceData;
+        const artLines = [];
+        
+        for(let y = 1; y < height-1; y++) {
+            const line = [];
+            for(let x = 1; x < width-1; x++) {
+                const pos = y * width + x;
+                
+                //horizontal
+                const gx = (
+                    -1 * pixels[pos - 1 - width] +
+                    1 * pixels[pos + 1 - width] +
+                    -2 * pixels[pos - 1] +
+                    2 * pixels[pos + 1] +
+                    -1 * pixels[pos - 1 + width] +
+                    1 * pixels[pos + 1 + width]
+                ) / 8;
+                
+                //vertical
+                const gy = (
+                    -1 * pixels[pos - width - 1] +
+                    -2 * pixels[pos - width] +
+                    -1 * pixels[pos - width + 1] +
+                    1 * pixels[pos + width - 1] +
+                    2 * pixels[pos + width] +
+                    1 * pixels[pos + width + 1]
+                ) / 8;
+                
+                const magnitude = Math.sqrt(gx * gx + gy * gy);
+                const angle = Math.atan2(gy, gx) * (180 / Math.PI);
+                
+                let char;
+                if(magnitude < 50) {
+                    const shadingIndex = Math.min(
+                        Math.floor(pixels[pos] / this.settings.asciiDivider),
+                        shading.length - 1
+                    );
+                    char = shading[shadingIndex];
+                } else {
+                    const normalizedAngle = angle < 0 ? angle + 360 : angle;
+                    
+                    if((normalizedAngle >= 337.5 || normalizedAngle < 22.5) || 
+                       (normalizedAngle >= 157.5 && normalizedAngle < 202.5)) {
+                        char = directionChars.horizontal;
+                    } else if((normalizedAngle >= 22.5 && angle < 67.5) || 
+                             (normalizedAngle >= 202.5 && normalizedAngle < 247.5)) {
+                        char = directionChars.diagonal1;
+                    } else if((normalizedAngle >= 67.5 && normalizedAngle < 112.5) || 
+                             (normalizedAngle >= 247.5 && normalizedAngle < 292.5)) {
+                        char = directionChars.vertical;
+                    } else {
+                        char = directionChars.diagonal2;
+                    }
+                }
+                
+                line.push(char);
+            }
+            artLines.push(line.join(''));
+        }
+        
+        return artLines.join('\n');
+    }
+
     //========================
     // Main Processing Method
     //========================
@@ -290,6 +435,8 @@ class ImageToAsciiProcessor {
                 return this.processToBrightnessColoredAscii();
             case 'grayscaleBraille':
                 return this.processToGrayscaleBraille()
+            case 'edgeDetection':
+                return this.processSobelToAscii()
             default:
                 throw new Error(`Unsupported mode: ${mode}`);
         }
