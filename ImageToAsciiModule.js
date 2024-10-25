@@ -184,66 +184,67 @@ class ImageToAsciiProcessor {
     }
 
     applyGuassianBlur(radius = 2) {
-        const pixels = this.pixelData
-        const firstPixelArray = new Uint8ClampedArray(pixels.length)
-        const kernel = this.generateGaussianKernel(radius)
-        const width = this.settings.imgWidth
-        const height = this.settings.imgHeight
+        const pixels = this.pixelData;
+        const width = this.settings.imgWidth;
+        const height = this.settings.imgHeight;
+        const kernel = this.generateGaussianKernel(radius);
         
-        //horizontal first
+        const firstPixelArray = new Uint8ClampedArray(pixels.length);
+        
+        // Horizontal pass
         for (let y = 0; y < height; y++) {
             for (let x = 0; x < width; x++) {
-                let red = 0, green = 0, blue = 0, alpha = 0
-                let weightSum = 0
+                let red = 0, green = 0, blue = 0, alpha = 0;
+                let weightSum = 0;
                 
-                for (let i = -radius; i <= radius; i++) {
-                    const positionX = Math.min(Math.max(x + i, 0), width - 1)
-                    const indexX = (y * width + positionX) * 4
-                    const weight = kernel[i + radius]
+                for (let k = -radius; k <= radius; k++) {
+                    const posX = Math.min(Math.max(x + k, 0), width - 1);
+                    const pixelIndex = (y * width + posX) * 4;
+                    const weight = kernel[k + radius];
                     
-                    red += pixels[indexX] * weight
-                    green += pixels[indexX + 1] * weight
-                    blue += pixels[indexX + 2] * weight
-                    alpha += pixels[indexX + 3] * weight
-                    weightSum += weight
+                    red += pixels[pixelIndex] * weight;
+                    green += pixels[pixelIndex + 1] * weight;
+                    blue += pixels[pixelIndex + 2] * weight;
+                    alpha += pixels[pixelIndex + 3] * weight;
+                    weightSum += weight;
                 }
                 
-                const pixelOriginIndex = (y * width + x) * 4
-                firstPixelArray[pixelOriginIndex] = red / weightSum
-                firstPixelArray[pixelOriginIndex + 1] = green / weightSum
-                firstPixelArray[pixelOriginIndex + 2] = blue / weightSum
-                firstPixelArray[pixelOriginIndex + 3] = alpha / weightSum
+                const targetIndex = (y * width + x) * 4;
+                firstPixelArray[targetIndex] = red / weightSum;
+                firstPixelArray[targetIndex + 1] = green / weightSum;
+                firstPixelArray[targetIndex + 2] = blue / weightSum;
+                firstPixelArray[targetIndex + 3] = alpha / weightSum;
             }
         }
         
-        //vertical second
-        const finalPixelArray = new Uint8ClampedArray(pixels.length)
+        // Vertical pass
+        const finalPixelArray = new Uint8ClampedArray(pixels.length);
         for (let x = 0; x < width; x++) {
             for (let y = 0; y < height; y++) {
-                let red = 0, green = 0, blue = 0, alpha = 0
-                let weightSum = 0
+                let red = 0, green = 0, blue = 0, alpha = 0;
+                let weightSum = 0;
                 
-                for (let i = -radius; i <= radius; i++) {
-                    const positionY = Math.min(Math.max(y + i, 0), height - 1)
-                    const indexY = (positionY * width + x) * 4
-                    const weight = kernel[i + radius]
+                for (let k = -radius; k <= radius; k++) {
+                    const posY = Math.min(Math.max(y + k, 0), height - 1);
+                    const pixelIndex = (posY * width + x) * 4;
+                    const weight = kernel[k + radius];
                     
-                    red += firstPixelArray[indexY] * weight
-                    green += firstPixelArray[indexY + 1] * weight
-                    blue += firstPixelArray[indexY + 2] * weight
-                    alpha += firstPixelArray[indexY + 3] * weight
-                    weightSum += weight
+                    red += firstPixelArray[pixelIndex] * weight;
+                    green += firstPixelArray[pixelIndex + 1] * weight;
+                    blue += firstPixelArray[pixelIndex + 2] * weight;
+                    alpha += firstPixelArray[pixelIndex + 3] * weight;
+                    weightSum += weight;
                 }
                 
-                const pixelOriginIndex = (y * width + x) * 4
-                finalPixelArray[pixelOriginIndex] = red / weightSum
-                finalPixelArray[pixelOriginIndex + 1] = green / weightSum
-                finalPixelArray[pixelOriginIndex + 2] = blue / weightSum
-                finalPixelArray[pixelOriginIndex + 3] = alpha / weightSum
+                const targetIndex = (y * width + x) * 4;
+                finalPixelArray[targetIndex] = red / weightSum;
+                finalPixelArray[targetIndex + 1] = green / weightSum;
+                finalPixelArray[targetIndex + 2] = blue / weightSum;
+                finalPixelArray[targetIndex + 3] = alpha / weightSum;
             }
         }
         
-        return finalPixelArray
+        return finalPixelArray;
     }
 
     //========================
@@ -258,20 +259,21 @@ class ImageToAsciiProcessor {
         const contrastedData = this.applyContrast();
         const artLines = [];
     
-        for (let i = 0; i < contrastedData.length; i += this.settings.imgWidth) {
+        for (let y = 0; y < contrastedData.length; y += this.settings.imgWidth) {
             const line = [];
-            let whitespace = ''
-            for (let j = 0; j < this.settings.imgWidth; j++) {
+            let whitespace = '';
+            for (let x = 0; x < this.settings.imgWidth; x++) {
+                const pixelIndex = y + x;
                 const index = Math.min(
-                    Math.floor(contrastedData[i + j] / this.settings.asciiDivider), 
+                    Math.floor(contrastedData[pixelIndex] / this.settings.asciiDivider), 
                     asciiIntensity.length - 1
                 );
                 const character = asciiIntensity[index];
                 if (character === '⠀') {
-                    whitespace += '⠀'
+                    whitespace += '⠀';
                 } else {
-                    line.push(whitespace + character)
-                    whitespace = ''
+                    line.push(whitespace + character);
+                    whitespace = '';
                 }
             }
             artLines.push(line.join(''));
@@ -287,11 +289,12 @@ class ImageToAsciiProcessor {
         const contrastedData = this.applyContrast();
         const artLines = [];
     
-        for (let i = 0; i < contrastedData.length; i += this.settings.imgWidth) {
+        for (let y = 0; y < contrastedData.length; y += this.settings.imgWidth) {
             const line = [];
-            for (let j = 0; j < this.settings.imgWidth; j++) {
+            for (let x = 0; x < this.settings.imgWidth; x++) {
+                const pixelIndex = y + x;
                 const index = Math.min(
-                    Math.floor(contrastedData[i + j] / this.settings.asciiDivider), 
+                    Math.floor(contrastedData[pixelIndex] / this.settings.asciiDivider), 
                     asciiIntensity.length - 1
                 );
                 const character = asciiIntensity[index];
@@ -306,10 +309,10 @@ class ImageToAsciiProcessor {
         const pixelCount = this.pixelData.length / 4;
         const artLines = [];
     
-        for (let i = 0; i < pixelCount; i += this.settings.imgWidth) {
+        for (let y = 0; y < pixelCount; y += this.settings.imgWidth) {
             const line = [];
-            for (let j = 0; j < this.settings.imgWidth; j++) {
-                const pixelIndex = (i + j) * 4;
+            for (let x = 0; x < this.settings.imgWidth; x++) {
+                const pixelIndex = (y + x) * 4;
                 const red = this.pixelData[pixelIndex];
                 const green = this.pixelData[pixelIndex + 1];
                 const blue = this.pixelData[pixelIndex + 2];
@@ -326,22 +329,22 @@ class ImageToAsciiProcessor {
             : ImageToAsciiProcessor.ASCII_MAPS.standard;
         const artLines = [];
     
-        for (let i = 0; i < this.pixelLuminanceData.length; i += this.settings.imgWidth) {
+        for (let y = 0; y < this.pixelLuminanceData.length; y += this.settings.imgWidth) {
             const line = [];
-            let whitespace = true
-            for (let j = this.settings.imgWidth - 1; j >= 0; j--) {
-                const pixelIndex = (i + j) * 4;
+            let whitespace = true;
+            for (let x = this.settings.imgWidth - 1; x >= 0; x--) {
+                const pixelIndex = (y + x) * 4;
                 const red = this.pixelData[pixelIndex];
                 const green = this.pixelData[pixelIndex + 1];
                 const blue = this.pixelData[pixelIndex + 2];
-                const charindex = Math.min(
-                    Math.floor(this.pixelLuminanceData[i + j] / this.settings.asciiDivider), 
+                const charIndex = Math.min(
+                    Math.floor(this.pixelLuminanceData[y + x] / this.settings.asciiDivider), 
                     asciiIntensity.length - 1
                 );
-                const character = asciiIntensity[charindex];
+                const character = asciiIntensity[charIndex];
 
-                if (whitespace && character.trim() === '') continue
-                whitespace = false
+                if (whitespace && character.trim() === '') continue;
+                whitespace = false;
                 line.unshift(`<span style="color: rgb(${red}, ${green}, ${blue})">${character}</span>`);
             }
             artLines.push(line.join(''));
@@ -350,62 +353,62 @@ class ImageToAsciiProcessor {
     }
 
     processSobelToAscii() {
-        const directionChars = ImageToAsciiProcessor.ASCII_MAPS.standardEdges
+        const directionChars = ImageToAsciiProcessor.ASCII_MAPS.standardEdges;
         const shading = this.settings.reverseIntensity 
-        ? ImageToAsciiProcessor.ASCII_MAPS.standardReversed 
-        : ImageToAsciiProcessor.ASCII_MAPS.standard
+            ? ImageToAsciiProcessor.ASCII_MAPS.standardReversed 
+            : ImageToAsciiProcessor.ASCII_MAPS.standard;
         const height = this.settings.imgHeight;
         const width = this.settings.imgWidth;
         
         const pixels = this.guassianPixelLuminanceData;
         const artLines = [];
         
-        for(let y = 1; y < height-1; y++) {
+        for (let y = 1; y < height - 1; y++) {
             const line = [];
-            for(let x = 1; x < width-1; x++) {
-                const pos = y * width + x;
+            for (let x = 1; x < width - 1; x++) {
+                const pixelIndex = y * width + x;
                 
-                //horizontal
+                // Horizontal gradient
                 const gx = (
-                    -1 * pixels[pos - 1 - width] +
-                    1 * pixels[pos + 1 - width] +
-                    -2 * pixels[pos - 1] +
-                    2 * pixels[pos + 1] +
-                    -1 * pixels[pos - 1 + width] +
-                    1 * pixels[pos + 1 + width]
+                    -1 * pixels[pixelIndex - 1 - width] +
+                    1 * pixels[pixelIndex + 1 - width] +
+                    -2 * pixels[pixelIndex - 1] +
+                    2 * pixels[pixelIndex + 1] +
+                    -1 * pixels[pixelIndex - 1 + width] +
+                    1 * pixels[pixelIndex + 1 + width]
                 ) / 8;
                 
-                //vertical
+                // Vertical gradient
                 const gy = (
-                    -1 * pixels[pos - width - 1] +
-                    -2 * pixels[pos - width] +
-                    -1 * pixels[pos - width + 1] +
-                    1 * pixels[pos + width - 1] +
-                    2 * pixels[pos + width] +
-                    1 * pixels[pos + width + 1]
+                    -1 * pixels[pixelIndex - width - 1] +
+                    -2 * pixels[pixelIndex - width] +
+                    -1 * pixels[pixelIndex - width + 1] +
+                    1 * pixels[pixelIndex + width - 1] +
+                    2 * pixels[pixelIndex + width] +
+                    1 * pixels[pixelIndex + width + 1]
                 ) / 8;
                 
                 const magnitude = Math.sqrt(gx * gx + gy * gy);
                 const angle = Math.atan2(gy, gx) * (180 / Math.PI);
                 
                 let char;
-                if(magnitude < 50) {
+                if (magnitude < 50) {
                     const shadingIndex = Math.min(
-                        Math.floor(pixels[pos] / this.settings.asciiDivider),
+                        Math.floor(pixels[pixelIndex] / this.settings.asciiDivider),
                         shading.length - 1
                     );
                     char = shading[shadingIndex];
                 } else {
                     const normalizedAngle = angle < 0 ? angle + 360 : angle;
                     
-                    if((normalizedAngle >= 337.5 || normalizedAngle < 22.5) || 
-                       (normalizedAngle >= 157.5 && normalizedAngle < 202.5)) {
+                    if ((normalizedAngle >= 337.5 || normalizedAngle < 22.5) || 
+                        (normalizedAngle >= 157.5 && normalizedAngle < 202.5)) {
                         char = directionChars.horizontal;
-                    } else if((normalizedAngle >= 22.5 && angle < 67.5) || 
-                             (normalizedAngle >= 202.5 && normalizedAngle < 247.5)) {
+                    } else if ((normalizedAngle >= 22.5 && angle < 67.5) || 
+                              (normalizedAngle >= 202.5 && normalizedAngle < 247.5)) {
                         char = directionChars.diagonal1;
-                    } else if((normalizedAngle >= 67.5 && normalizedAngle < 112.5) || 
-                             (normalizedAngle >= 247.5 && normalizedAngle < 292.5)) {
+                    } else if ((normalizedAngle >= 67.5 && normalizedAngle < 112.5) || 
+                              (normalizedAngle >= 247.5 && normalizedAngle < 292.5)) {
                         char = directionChars.vertical;
                     } else {
                         char = directionChars.diagonal2;
