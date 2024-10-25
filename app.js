@@ -25,8 +25,7 @@ class PhotoToAsciiProcessor {
             currentImage: null,
             asciiDivider: Math.floor(255 / (PhotoToAsciiProcessor.ASCII_MAPS.standard.length - 1))
         }
-        this._luminanceBuffer = new Float64Array(1024)
-        this._lineBuffer = new Array(1024)
+        this._luminanceBuffer = new Uint8ClampedArray(1024)
     }
 
     _updateSettings = {
@@ -132,15 +131,19 @@ class PhotoToAsciiProcessor {
     }
 
     calculateLuminance() {
-        const luminanceData = new Uint8ClampedArray(this.pixelData.length / 4);
+        const pixelLength = this.pixelData.length / 4;
+        if (this._luminanceBuffer > pixelLength) {
+            this._luminanceBuffer = new Uint8ClampedArray(pixelLength)
+        }
+
         for (let i = 0; i < luminanceData.length; i++) {
             const Red = this.pixelData[i * 4];
             const Green = this.pixelData[(i * 4) + 1];
             const Blue = this.pixelData[(i * 4) + 2];
     
-            luminanceData[i] = Math.floor(0.299 * Red + 0.587 * Green + 0.114 * Blue);
+            this._lineBuffer[i] = Math.floor(0.299 * Red + 0.587 * Green + 0.114 * Blue);
         }
-        return luminanceData;
+        return this._luminanceBuffer;
     }
 
     applyContrast() {
