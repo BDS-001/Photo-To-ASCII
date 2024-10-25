@@ -25,7 +25,7 @@ class PhotoToAsciiProcessor {
             currentImage: null,
             asciiDivider: Math.floor(255 / (PhotoToAsciiProcessor.ASCII_MAPS.standard.length - 1))
         }
-        this._luminanceBuffer = new Uint8ClampedArray(1024)
+        this._luminanceBuffer = new Float64Array(1024)
     }
 
     _updateSettings = {
@@ -82,7 +82,7 @@ class PhotoToAsciiProcessor {
 
         return new Promise((resolve, reject) => {
             const img = new Image();
-            const objectUrl = createObjectURL(file)
+            const objectUrl = URL.createObjectURL(file)
             
             img.onload = () => {
                 this.settings.currentImage = {
@@ -131,19 +131,15 @@ class PhotoToAsciiProcessor {
     }
 
     calculateLuminance() {
-        const pixelLength = this.pixelData.length / 4;
-        if (this._luminanceBuffer > pixelLength) {
-            this._luminanceBuffer = new Uint8ClampedArray(pixelLength)
-        }
-
+        const luminanceData = new Uint8ClampedArray(this.pixelData.length / 4);
         for (let i = 0; i < luminanceData.length; i++) {
             const Red = this.pixelData[i * 4];
             const Green = this.pixelData[(i * 4) + 1];
             const Blue = this.pixelData[(i * 4) + 2];
     
-            this._lineBuffer[i] = Math.floor(0.299 * Red + 0.587 * Green + 0.114 * Blue);
+            luminanceData[i] = Math.floor(0.299 * Red + 0.587 * Green + 0.114 * Blue);
         }
-        return this._luminanceBuffer;
+        return luminanceData;
     }
 
     applyContrast() {
