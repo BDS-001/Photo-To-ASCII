@@ -230,7 +230,7 @@ class PhotoToAsciiProcessor {
     
     processToBrightnessColoredAscii() {
         const asciiIntensity = this.settings.reverseIntensity 
-            ? PhotoToAsciiProcessor.ASCII_MAPS.reversed 
+            ? PhotoToAsciiProcessor.ASCII_MAPS.standardReversed 
             : PhotoToAsciiProcessor.ASCII_MAPS.standard;
         const artLines = [];
     
