@@ -1,4 +1,4 @@
-class PhotoToAsciiProcessor {
+class ImageToAsciiProcessor {
     //========================
     // Static Configuration
     //========================
@@ -17,7 +17,7 @@ class PhotoToAsciiProcessor {
         contrastFactor: 1,
         reverseIntensity : false,
         maintainAspectRatio : false
-    }
+    } 
 
     //========================
     // Initialization
@@ -27,10 +27,10 @@ class PhotoToAsciiProcessor {
         this.canvas = document.createElement('canvas');
         this.context = this.canvas.getContext('2d', {alpha: false, willReadFrequently: true})
         this.settings = {
-            ...PhotoToAsciiProcessor.DEFAULT_SETTINGS,
+            ...ImageToAsciiProcessor.DEFAULT_SETTINGS,
             aspectRatio: null,
             currentImage: null,
-            asciiDivider: Math.floor(255 / (PhotoToAsciiProcessor.ASCII_MAPS.standard.length - 1))
+            asciiDivider: Math.floor(255 / (ImageToAsciiProcessor.ASCII_MAPS.standard.length - 1))
         }
     }
 
@@ -39,7 +39,7 @@ class PhotoToAsciiProcessor {
     //========================
     
     updateSettings(setting, value) {
-        if (!(setting in PhotoToAsciiProcessor.DEFAULT_SETTINGS)) {
+        if (!(setting in ImageToAsciiProcessor.DEFAULT_SETTINGS)) {
             throw new Error(`Invalid setting: ${setting}`);
         }
         this.settings[setting] = value;
@@ -178,8 +178,8 @@ class PhotoToAsciiProcessor {
     
     processToGrayscaleBraille() {
         const asciiIntensity = this.settings.reverseIntensity 
-            ? PhotoToAsciiProcessor.ASCII_MAPS.brailleReversed 
-            : PhotoToAsciiProcessor.ASCII_MAPS.braille;
+            ? ImageToAsciiProcessor.ASCII_MAPS.brailleReversed 
+            : ImageToAsciiProcessor.ASCII_MAPS.braille;
         
         const contrastedData = this.applyContrast();
         const artLines = [];
@@ -207,8 +207,8 @@ class PhotoToAsciiProcessor {
 
     processToGrayscaleAscii() {
         const asciiIntensity = this.settings.reverseIntensity 
-            ? PhotoToAsciiProcessor.ASCII_MAPS.standardReversed 
-            : PhotoToAsciiProcessor.ASCII_MAPS.standard;
+            ? ImageToAsciiProcessor.ASCII_MAPS.standardReversed 
+            : ImageToAsciiProcessor.ASCII_MAPS.standard;
         
         const contrastedData = this.applyContrast();
         const artLines = [];
@@ -248,8 +248,8 @@ class PhotoToAsciiProcessor {
     
     processToBrightnessColoredAscii() {
         const asciiIntensity = this.settings.reverseIntensity 
-            ? PhotoToAsciiProcessor.ASCII_MAPS.standardReversed 
-            : PhotoToAsciiProcessor.ASCII_MAPS.standard;
+            ? ImageToAsciiProcessor.ASCII_MAPS.standardReversed 
+            : ImageToAsciiProcessor.ASCII_MAPS.standard;
         const artLines = [];
     
         for (let i = 0; i < this.pixelLuminanceData.length; i += this.settings.imgWidth) {
@@ -342,7 +342,7 @@ class PhotoToAsciiProcessor {
 
 
 document.addEventListener('DOMContentLoaded', () => {
-    const ImageProcessor = new PhotoToAsciiProcessor()
+    const ImageProcessor = new ImageToAsciiProcessor()
 
     const domElements = {
         imageUpload : document.getElementById('imageUpload'),
