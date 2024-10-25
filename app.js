@@ -25,7 +25,6 @@ class PhotoToAsciiProcessor {
             currentImage: null,
             asciiDivider: Math.floor(255 / (PhotoToAsciiProcessor.ASCII_MAPS.standard.length - 1))
         }
-        this._luminanceBuffer = new Float64Array(1024)
     }
 
     _updateSettings = {
