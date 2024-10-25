@@ -421,7 +421,7 @@ class ImageToAsciiProcessor {
                 
                 line.push(char);
             }
-            artLines.push(line.join(''));
+            artLines.push(line.join('').trimEnd());
         }
         
         return artLines.join('\n');
@@ -492,7 +492,7 @@ class ImageToAsciiProcessor {
                 
                 line.push(char);
             }
-            artLines.push(line.join(''));
+            artLines.push(line.join('').trimEnd());
         }
         
         return artLines.join('\n');
