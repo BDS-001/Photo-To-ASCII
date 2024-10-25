@@ -44,12 +44,12 @@ class PhotoToAsciiProcessor {
         }
         this.settings[setting] = value;
 
-        if (this.settings.aspectRatio) {
+        if (this.settings.aspectRatio && this.settings.maintainAspectRatio) {
             if (setting === 'maintainAspectRatio' || setting === 'imgWidth') {
                 if (this.settings.maintainAspectRatio) {
                     this.settings.imgHeight = Math.floor((this.settings.imgWidth / this.settings.aspectRatio) / 2);
                 }
-            } else if (setting === 'imgHeight' && this.settings.maintainAspectRatio) {
+            } else if (setting === 'imgHeight') {
                 this.settings.imgWidth = Math.floor((this.settings.imgHeight * this.settings.aspectRatio) * 2);
             }
         }
