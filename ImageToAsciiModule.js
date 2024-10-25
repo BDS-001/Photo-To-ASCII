@@ -168,8 +168,67 @@ class ImageToAsciiProcessor {
         return kernel;
     }
 
-    applyGuassianBlur() {
-        const guassianBlurPixelArray = new Uint8ClampedArray(this.pixelData)
+    applyGuassianBlur(radius = 2) {
+        const pixels = this.pixelData
+        const firstPixelArray = new Uint8ClampedArray(pixels.length)
+        const kernel = this.generateGaussianKernel(radius)
+        const width = this.settings.imgWidth
+        const height = this.settings.imgHeight
+        
+        //horizontal first
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                let red = 0, green = 0, blue = 0, alpha = 0
+                let weightSum = 0
+                
+                for (let i = -radius; i <= radius; i++) {
+                    const positionX = Math.min(Math.max(x + i, 0), width - 1)
+                    const indexX = (y * width + positionX) * 4
+                    const weight = kernel[i + radius]
+                    
+                    red += pixels[indexX] * weight
+                    green += pixels[indexX + 1] * weight
+                    blue += pixels[indexX + 2] * weight
+                    alpha += pixels[indexX + 3] * weight
+                    weightSum += weight
+                }
+                
+                const pixelOriginIndex = (y * width + x) * 4
+                firstPixelArray[pixelOriginIndex] = red / weightSum
+                firstPixelArray[pixelOriginIndex + 1] = green / weightSum
+                firstPixelArray[pixelOriginIndex + 2] = blue / weightSum
+                firstPixelArray[pixelOriginIndex + 3] = alpha / weightSum
+            }
+        }
+        
+        //vertical second
+        const finalPixelArray = new Uint8ClampedArray(pixels.length)
+        for (let x = 0; x < width; x++) {
+            for (let y = 0; y < height; y++) {
+                let red = 0, green = 0, blue = 0, alpha = 0
+                let weightSum = 0
+                
+                for (let i = -radius; i <= radius; i++) {
+                    const positionY = Math.min(Math.max(y + i, 0), height - 1)
+                    const indexY = (positionY * width + x) * 4
+                    const weight = kernel[i + radius]
+                    
+                    red += firstPixelArray[indexY] * weight
+                    green += firstPixelArray[indexY + 1] * weight
+                    blue += firstPixelArray[indexY + 2] * weight
+                    alpha += firstPixelArray[indexY + 3] * weight
+                    weightSum += weight
+                }
+                
+                const pixelOriginIndex = (y * width + x) * 4
+                finalPixelArray[pixelOriginIndex] = red / weightSum
+                finalPixelArray[pixelOriginIndex + 1] = green / weightSum
+                finalPixelArray[pixelOriginIndex + 2] = blue / weightSum
+                finalPixelArray[pixelOriginIndex + 3] = alpha / weightSum
+            }
+        }
+        
+        return finalPixelArray
     }
 
     //========================
