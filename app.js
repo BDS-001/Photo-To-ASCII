@@ -1,10 +1,13 @@
 class PhotoToAsciiProcessor {
+    //========================
+    // Static Configuration
+    //========================
+    
     static ASCII_MAPS = {
         standard: ' _.,-=+:;cba!?0123456789$W#@Ñ',
         standardReversed: 'Ñ@#W$9876543210?!abc;:+=-,._ ',
         braille : ['⠀', '⠁', '⠃', '⠇', '⠏', '⠟', '⠿', '⡿', '⣿'],
         brailleReversed : ['⣿', '⡿', '⠿', '⠟', '⠏', '⠇', '⠃', '⠁', '⠀']
-
     }
 
     static DEFAULT_SETTINGS = {
@@ -16,6 +19,10 @@ class PhotoToAsciiProcessor {
         maintainAspectRatio : false
     }
 
+    //========================
+    // Initialization
+    //========================
+    
     constructor() {
         this.canvas = document.createElement('canvas');
         this.context = this.canvas.getContext('2d', {alpha: false, willReadFrequently: true})
@@ -27,6 +34,10 @@ class PhotoToAsciiProcessor {
         }
     }
 
+    //========================
+    // Settings Management
+    //========================
+    
     _updateSettings = {
         mode: (value) => this.settings.mode = value,
         imgWidth: (value) => this.settings.imgWidth = value,
@@ -66,6 +77,10 @@ class PhotoToAsciiProcessor {
         }
     }
 
+    //========================
+    // Image Loading & Data Management
+    //========================
+    
     async loadImage(file) {
         if (!file) throw new Error('No file provided');
 
@@ -109,8 +124,14 @@ class PhotoToAsciiProcessor {
         });
     }
 
+    //========================
+    // Pixel Data Getters
+    //========================
+    
     get pixelLuminanceData() {
-        if (!this.settings.currentImage?.pixelLuminanceData) this.settings.currentImage.pixelLuminanceData = this.calculateLuminance()
+        if (!this.settings.currentImage?.pixelLuminanceData) {
+            this.settings.currentImage.pixelLuminanceData = this.calculateLuminance()
+        }
         return this.settings.currentImage.pixelLuminanceData
     }
 
@@ -121,6 +142,10 @@ class PhotoToAsciiProcessor {
         return this.settings.currentImage.pixelData
     }
 
+    //========================
+    // Image Processing Utilities
+    //========================
+    
     capturePixelData(img) {
         this.canvas.width = this.settings.imgWidth;
         this.canvas.height = this.settings.imgHeight;
@@ -147,10 +172,6 @@ class PhotoToAsciiProcessor {
         );
     }
 
-    applyGuassianBlur() {
-        const guassianBlurPixelArray = new Uint8ClampedArray(this.pixelData)
-    }
-
     generateGaussianKernel(radius = 2) {
         const kernel = new Float32Array(2 * radius + 1);
         const sigma = radius/3;
@@ -169,6 +190,14 @@ class PhotoToAsciiProcessor {
         return kernel;
     }
 
+    applyGuassianBlur() {
+        const guassianBlurPixelArray = new Uint8ClampedArray(this.pixelData)
+    }
+
+    //========================
+    // ASCII Conversion Methods
+    //========================
+    
     processToGrayscaleBraille() {
         const asciiIntensity = this.settings.reverseIntensity 
             ? PhotoToAsciiProcessor.ASCII_MAPS.brailleReversed 
@@ -268,6 +297,10 @@ class PhotoToAsciiProcessor {
         return artLines.join('\n');
     }
 
+    //========================
+    // Main Processing Method
+    //========================
+    
     async processImage(image, mode = this.settings.mode) {
         await this.loadImage(image);
         switch (mode) {
@@ -282,7 +315,7 @@ class PhotoToAsciiProcessor {
             default:
                 throw new Error(`Unsupported mode: ${mode}`);
         }
-    }  
+    }
 }
 
 
