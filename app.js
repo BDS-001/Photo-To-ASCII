@@ -174,7 +174,7 @@ class PhotoToAsciiProcessor {
                 const character = asciiIntensity[index];
                 line.push(character);
             }
-            artLines.push(line.join(''));
+            artLines.push(line.join('').trimEnd());
         }
         return artLines.join('\n');
     }

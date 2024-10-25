@@ -166,7 +166,7 @@ fieldset .setting:last-child {
 }
 
 /* Art output area */
-#art {
+.artContainer {
     background-color: var(--bg-secondary);
     padding: 1.5rem;
     border-radius: 12px;
@@ -176,6 +176,12 @@ fieldset .setting:last-child {
     white-space: pre;
     overflow: auto;
     text-align: center;
+    display: flex;
+    justify-content: center;
+}
+
+#art {
+    text-align: left;
 }
 
 /* screen size styles */
