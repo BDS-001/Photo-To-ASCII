@@ -174,7 +174,7 @@ class PhotoToAsciiProcessor {
                 const character = asciiIntensity[index];
                 line.push(character);
             }
-            artLines.push(line.join(''));
+            artLines.push(line.join('').trimEnd());
         }
         return artLines.join('\n');
     }
@@ -205,7 +205,8 @@ class PhotoToAsciiProcessor {
     
         for (let i = 0; i < this.pixelLuminanceData.length; i += this.settings.imgWidth) {
             const line = [];
-            for (let j = 0; j < this.settings.imgWidth; j++) {
+            let whitespace = true
+            for (let j = this.settings.imgWidth - 1; j >= 0; j--) {
                 const pixelIndex = (i + j) * 4;
                 const red = this.pixelData[pixelIndex];
                 const green = this.pixelData[pixelIndex + 1];
@@ -215,8 +216,10 @@ class PhotoToAsciiProcessor {
                     asciiIntensity.length - 1
                 );
                 const character = asciiIntensity[charindex];
-                
-                line.push(`<span style="color: rgb(${red}, ${green}, ${blue})">${character}</span>`);
+
+                if (whitespace && character.trim() === '') continue
+                whitespace = false
+                line.unshift(`<span style="color: rgb(${red}, ${green}, ${blue})">${character}</span>`);
             }
             artLines.push(line.join(''));
         }
