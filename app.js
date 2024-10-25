@@ -1,7 +1,9 @@
 class PhotoToAsciiProcessor {
     static ASCII_MAPS = {
         standard: ' _.,-=+:;cba!?0123456789$W#@Ñ',
-        reversed: 'Ñ@#W$9876543210?!abc;:+=-,._ ',
+        standardReversed: 'Ñ@#W$9876543210?!abc;:+=-,._ ',
+        braille : ['⠀', '⠁', '⠃', '⠇', '⠏', '⠟', '⠿', '⡿', '⣿'],
+        brailleReversed : ['⣿', '⡿', '⠿', '⠟', '⠏', '⠇', '⠃', '⠁', '⠀']
 
     }
 
@@ -156,9 +158,33 @@ class PhotoToAsciiProcessor {
         return kernel;
     }
 
+    processToGrayscaleBraille() {
+        const asciiIntensity = this.settings.reverseIntensity 
+            ? PhotoToAsciiProcessor.ASCII_MAPS.brailleReversed 
+            : PhotoToAsciiProcessor.ASCII_MAPS.braille;
+        
+        const contrastedData = this.applyContrast();
+        const artLines = [];
+    
+        for (let i = 0; i < contrastedData.length; i += this.settings.imgWidth) {
+            const line = [];
+            whitespace = ''
+            for (let j = 0; j < this.settings.imgWidth; j++) {
+                const index = Math.min(
+                    Math.floor(contrastedData[i + j] / this.settings.asciiDivider), 
+                    asciiIntensity.length - 1
+                );
+                const character = asciiIntensity[index];
+                character === '⠀' ? whitespace += '⠀' : line.push(whitespace + character)
+            }
+            artLines.push(line.join(''));
+        }
+        return artLines.join('\n');
+    }
+
     processToGrayscaleAscii() {
         const asciiIntensity = this.settings.reverseIntensity 
-            ? PhotoToAsciiProcessor.ASCII_MAPS.reversed 
+            ? PhotoToAsciiProcessor.ASCII_MAPS.standardReversed 
             : PhotoToAsciiProcessor.ASCII_MAPS.standard;
         
         const contrastedData = this.applyContrast();
@@ -235,6 +261,8 @@ class PhotoToAsciiProcessor {
                 return this.processToColoredAscii();
             case 'colorBrightnessMap':
                 return this.processToBrightnessColoredAscii();
+            case 'grayscaleBraille':
+                return this.processToGrayscaleBraille()
             default:
                 throw new Error(`Unsupported mode: ${mode}`);
         }
