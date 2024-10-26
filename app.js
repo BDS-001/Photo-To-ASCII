@@ -155,6 +155,15 @@ class ImageToAsciiProcessor {
         return this.context.getImageData(0, 0, this.settings.imgWidth, this.settings.imgHeight).data;
     }
 
+    shadingMap = {
+        'ascii' : () => this.settings.reverseIntensity 
+        ? ImageToAsciiProcessor.ASCII_MAPS.standardReversed 
+        : ImageToAsciiProcessor.ASCII_MAPS.standard,
+        'braille' : () => this.settings.reverseIntensity 
+        ? ImageToAsciiProcessor.ASCII_MAPS.brailleReversed 
+        : ImageToAsciiProcessor.ASCII_MAPS.braille
+    }
+
     calculateLuminance(pixelData) {
         const luminanceData = new Uint8ClampedArray(pixelData.length / 4);
         for (let i = 0; i < luminanceData.length; i++) {
@@ -258,55 +267,31 @@ class ImageToAsciiProcessor {
     //========================
     // ASCII Conversion Methods
     //========================
-    
-    processToGrayscaleBraille() {
-        const asciiIntensity = this.settings.reverseIntensity 
-            ? ImageToAsciiProcessor.ASCII_MAPS.brailleReversed 
-            : ImageToAsciiProcessor.ASCII_MAPS.braille;
+
+    processToGrayscaleAscii(charSet = 'ascii') {
+        const shadingMap = this.shadingMap[charSet]()
+        console.log(shadingMap)
+        const whiteSpaceChar = charSet === 'ascii' ? ' ' : '⠀'
         
         const contrastedData = this.applyContrast();
         const artLines = [];
     
         for (let y = 0; y < contrastedData.length; y += this.settings.imgWidth) {
             const line = [];
-            let whitespace = '';
+            let whitespace = ''
             for (let x = 0; x < this.settings.imgWidth; x++) {
                 const pixelIndex = y + x;
                 const index = Math.min(
                     Math.floor(contrastedData[pixelIndex] / this.settings.asciiDivider), 
-                    asciiIntensity.length - 1
+                    shadingMap.length - 1
                 );
-                const character = asciiIntensity[index];
-                if (character === '⠀') {
-                    whitespace += '⠀';
+                const character = shadingMap[index];
+                if (character === whiteSpaceChar) {
+                    whitespace += character;
                 } else {
                     line.push(whitespace + character);
                     whitespace = '';
                 }
-            }
-            artLines.push(line.join(''));
-        }
-        return artLines.join('\n');
-    }
-
-    processToGrayscaleAscii() {
-        const asciiIntensity = this.settings.reverseIntensity 
-            ? ImageToAsciiProcessor.ASCII_MAPS.standardReversed 
-            : ImageToAsciiProcessor.ASCII_MAPS.standard;
-        
-        const contrastedData = this.applyContrast();
-        const artLines = [];
-    
-        for (let y = 0; y < contrastedData.length; y += this.settings.imgWidth) {
-            const line = [];
-            for (let x = 0; x < this.settings.imgWidth; x++) {
-                const pixelIndex = y + x;
-                const index = Math.min(
-                    Math.floor(contrastedData[pixelIndex] / this.settings.asciiDivider), 
-                    asciiIntensity.length - 1
-                );
-                const character = asciiIntensity[index];
-                line.push(character);
             }
             artLines.push(line.join('').trimEnd());
         }
@@ -571,12 +556,12 @@ class ImageToAsciiProcessor {
         switch (mode) {
             case 'grayscale':
                 return this.processToGrayscaleAscii();
+            case 'grayscaleBraille':
+                return this.processToGrayscaleAscii('braille')
             case 'color':
                 return this.processToColoredAscii();
             case 'colorBrightnessMap':
                 return this.processToBrightnessColoredAscii();
-            case 'grayscaleBraille':
-                return this.processToGrayscaleBraille()
             case 'edgeDetectionOutline':
                 return this.processSobelToAsciiOutline()
             case 'edgeDetectionFill':
