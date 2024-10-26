@@ -200,6 +200,30 @@ class ImageToAsciiProcessor {
         return kernel;
     }
 
+    calculateSobelGradient(pixels, pixelIndex, width) {
+        // Horizontal gradient
+        const gx = (
+            -1 * pixels[pixelIndex - 1 - width] +
+            1 * pixels[pixelIndex + 1 - width] +
+            -2 * pixels[pixelIndex - 1] +
+            2 * pixels[pixelIndex + 1] +
+            -1 * pixels[pixelIndex - 1 + width] +
+            1 * pixels[pixelIndex + 1 + width]
+        ) / 8;
+        
+        // Vertical gradient
+        const gy = (
+            -1 * pixels[pixelIndex - width - 1] +
+            -2 * pixels[pixelIndex - width] +
+            -1 * pixels[pixelIndex - width + 1] +
+            1 * pixels[pixelIndex + width - 1] +
+            2 * pixels[pixelIndex + width] +
+            1 * pixels[pixelIndex + width + 1]
+        ) / 8;
+
+        return {gx, gy }
+    }
+
     applyGaussianBlur(radius = 2) {
         const pixels = this.pixelData;
         const width = this.settings.imgWidth;
@@ -357,36 +381,15 @@ class ImageToAsciiProcessor {
             const line = [];
             for (let x = 1; x < width - 1; x++) {
                 const pixelIndex = y * width + x;
-                
-                // Horizontal gradient
-                const gx = (
-                    -1 * pixels[pixelIndex - 1 - width] +
-                    1 * pixels[pixelIndex + 1 - width] +
-                    -2 * pixels[pixelIndex - 1] +
-                    2 * pixels[pixelIndex + 1] +
-                    -1 * pixels[pixelIndex - 1 + width] +
-                    1 * pixels[pixelIndex + 1 + width]
-                ) / 8;
-                
-                // Vertical gradient
-                const gy = (
-                    -1 * pixels[pixelIndex - width - 1] +
-                    -2 * pixels[pixelIndex - width] +
-                    -1 * pixels[pixelIndex - width + 1] +
-                    1 * pixels[pixelIndex + width - 1] +
-                    2 * pixels[pixelIndex + width] +
-                    1 * pixels[pixelIndex + width + 1]
-                ) / 8;
-                
+                const {gx, gy} = this.calculateSobelGradient(pixels, pixelIndex, width)
                 const magnitude = Math.sqrt(gx * gx + gy * gy);
                 const angle = Math.atan2(gy, gx) * (180 / Math.PI);
-                
                 let char;
+
                 if (magnitude < 50) {
                     char = mode === 'fill' ? 
                     shadingMap[Math.min(Math.floor(pixels[pixelIndex] / this.settings.asciiDivider), shadingMap.length - 1)] :
                     directionChars.empty;
-                    console.log(char, mode)
                 } else {
                     const normalizedAngle = angle < 0 ? angle + 360 : angle;
                     

@@ -99,7 +99,7 @@ class ImageToAsciiProcessor {
                     originalHeight: img.height,
                     pixelData: this.capturePixelData(img),
                     pixelLuminanceData: null,
-                    guassianPixelLuminanceData: null,
+                    gaussianPixelLuminanceData: null,
                 };
                 
                 this.settings.aspectRatio = img.width / img.height;
@@ -129,11 +129,11 @@ class ImageToAsciiProcessor {
         return this.settings.currentImage.pixelLuminanceData
     }
 
-    get guassianPixelLuminanceData() {
-        if (!this.settings.currentImage?.guassianPixelLuminanceData) {
-            this.settings.currentImage.guassianPixelLuminanceData = this.calculateLuminance(this.applyGuassianBlur())
+    get gaussianPixelLuminanceData() {
+        if (!this.settings.currentImage?.gaussianPixelLuminanceData) {
+            this.settings.currentImage.gaussianPixelLuminanceData = this.calculateLuminance(this.applyGaussianBlur())
         }
-        return this.settings.currentImage.guassianPixelLuminanceData
+        return this.settings.currentImage.gaussianPixelLuminanceData
     }
 
     get pixelData() {
@@ -153,6 +153,15 @@ class ImageToAsciiProcessor {
     
         this.context.drawImage(img, 0, 0, this.settings.imgWidth, this.settings.imgHeight);
         return this.context.getImageData(0, 0, this.settings.imgWidth, this.settings.imgHeight).data;
+    }
+
+    shadingMap = {
+        'ascii' : () => this.settings.reverseIntensity 
+        ? ImageToAsciiProcessor.ASCII_MAPS.standardReversed 
+        : ImageToAsciiProcessor.ASCII_MAPS.standard,
+        'braille' : () => this.settings.reverseIntensity 
+        ? ImageToAsciiProcessor.ASCII_MAPS.brailleReversed 
+        : ImageToAsciiProcessor.ASCII_MAPS.braille
     }
 
     calculateLuminance(pixelData) {
@@ -191,7 +200,31 @@ class ImageToAsciiProcessor {
         return kernel;
     }
 
-    applyGuassianBlur(radius = 2) {
+    calculateSobelGradient(pixels, pixelIndex, width) {
+        // Horizontal gradient
+        const gx = (
+            -1 * pixels[pixelIndex - 1 - width] +
+            1 * pixels[pixelIndex + 1 - width] +
+            -2 * pixels[pixelIndex - 1] +
+            2 * pixels[pixelIndex + 1] +
+            -1 * pixels[pixelIndex - 1 + width] +
+            1 * pixels[pixelIndex + 1 + width]
+        ) / 8;
+        
+        // Vertical gradient
+        const gy = (
+            -1 * pixels[pixelIndex - width - 1] +
+            -2 * pixels[pixelIndex - width] +
+            -1 * pixels[pixelIndex - width + 1] +
+            1 * pixels[pixelIndex + width - 1] +
+            2 * pixels[pixelIndex + width] +
+            1 * pixels[pixelIndex + width + 1]
+        ) / 8;
+
+        return {gx, gy }
+    }
+
+    applyGaussianBlur(radius = 2) {
         const pixels = this.pixelData;
         const width = this.settings.imgWidth;
         const height = this.settings.imgHeight;
@@ -258,55 +291,30 @@ class ImageToAsciiProcessor {
     //========================
     // ASCII Conversion Methods
     //========================
-    
-    processToGrayscaleBraille() {
-        const asciiIntensity = this.settings.reverseIntensity 
-            ? ImageToAsciiProcessor.ASCII_MAPS.brailleReversed 
-            : ImageToAsciiProcessor.ASCII_MAPS.braille;
+
+    processToGrayscaleAscii(charSet = 'ascii') {
+        const shadingMap = this.shadingMap[charSet]()
+        const whiteSpaceChar = charSet === 'ascii' ? ' ' : '⠀'
         
         const contrastedData = this.applyContrast();
         const artLines = [];
     
         for (let y = 0; y < contrastedData.length; y += this.settings.imgWidth) {
             const line = [];
-            let whitespace = '';
+            let whitespace = ''
             for (let x = 0; x < this.settings.imgWidth; x++) {
                 const pixelIndex = y + x;
                 const index = Math.min(
                     Math.floor(contrastedData[pixelIndex] / this.settings.asciiDivider), 
-                    asciiIntensity.length - 1
+                    shadingMap.length - 1
                 );
-                const character = asciiIntensity[index];
-                if (character === '⠀') {
-                    whitespace += '⠀';
+                const character = shadingMap[index];
+                if (character === whiteSpaceChar) {
+                    whitespace += character;
                 } else {
                     line.push(whitespace + character);
                     whitespace = '';
                 }
-            }
-            artLines.push(line.join(''));
-        }
-        return artLines.join('\n');
-    }
-
-    processToGrayscaleAscii() {
-        const asciiIntensity = this.settings.reverseIntensity 
-            ? ImageToAsciiProcessor.ASCII_MAPS.standardReversed 
-            : ImageToAsciiProcessor.ASCII_MAPS.standard;
-        
-        const contrastedData = this.applyContrast();
-        const artLines = [];
-    
-        for (let y = 0; y < contrastedData.length; y += this.settings.imgWidth) {
-            const line = [];
-            for (let x = 0; x < this.settings.imgWidth; x++) {
-                const pixelIndex = y + x;
-                const index = Math.min(
-                    Math.floor(contrastedData[pixelIndex] / this.settings.asciiDivider), 
-                    asciiIntensity.length - 1
-                );
-                const character = asciiIntensity[index];
-                line.push(character);
             }
             artLines.push(line.join('').trimEnd());
         }
@@ -360,183 +368,28 @@ class ImageToAsciiProcessor {
         return artLines.join('\n');
     }
 
-    processSobelToAsciiOutline() {
-        const directionChars = ImageToAsciiProcessor.ASCII_MAPS.standardEdges;
-        const shading = this.settings.reverseIntensity 
-            ? ImageToAsciiProcessor.ASCII_MAPS.standardReversed 
-            : ImageToAsciiProcessor.ASCII_MAPS.standard;
+    processSobelToAscii(charSet = 'ascii', mode = 'outline') {
+        const directionChars = charSet === 'ascii' ? ImageToAsciiProcessor.ASCII_MAPS.standardEdges : ImageToAsciiProcessor.ASCII_MAPS.brailleEdges;
+        const shadingMap = this.shadingMap[charSet]()
         const height = this.settings.imgHeight;
         const width = this.settings.imgWidth;
         
-        const pixels = this.guassianPixelLuminanceData;
+        const pixels = this.gaussianPixelLuminanceData;
         const artLines = [];
         
         for (let y = 1; y < height - 1; y++) {
             const line = [];
             for (let x = 1; x < width - 1; x++) {
                 const pixelIndex = y * width + x;
-                
-                // Horizontal gradient
-                const gx = (
-                    -1 * pixels[pixelIndex - 1 - width] +
-                    1 * pixels[pixelIndex + 1 - width] +
-                    -2 * pixels[pixelIndex - 1] +
-                    2 * pixels[pixelIndex + 1] +
-                    -1 * pixels[pixelIndex - 1 + width] +
-                    1 * pixels[pixelIndex + 1 + width]
-                ) / 8;
-                
-                // Vertical gradient
-                const gy = (
-                    -1 * pixels[pixelIndex - width - 1] +
-                    -2 * pixels[pixelIndex - width] +
-                    -1 * pixels[pixelIndex - width + 1] +
-                    1 * pixels[pixelIndex + width - 1] +
-                    2 * pixels[pixelIndex + width] +
-                    1 * pixels[pixelIndex + width + 1]
-                ) / 8;
-                
+                const {gx, gy} = this.calculateSobelGradient(pixels, pixelIndex, width)
                 const magnitude = Math.sqrt(gx * gx + gy * gy);
                 const angle = Math.atan2(gy, gx) * (180 / Math.PI);
-                
                 let char;
-                if (magnitude < 50) {
-                    char = directionChars.empty
-                } else {
-                    const normalizedAngle = angle < 0 ? angle + 360 : angle;
-                    
-                    if ((normalizedAngle >= 337.5 || normalizedAngle < 22.5) || 
-                        (normalizedAngle >= 157.5 && normalizedAngle < 202.5)) {
-                        char = directionChars.horizontal;
-                    } else if ((normalizedAngle >= 22.5 && angle < 67.5) || 
-                              (normalizedAngle >= 202.5 && normalizedAngle < 247.5)) {
-                        char = directionChars.diagonal1;
-                    } else if ((normalizedAngle >= 67.5 && normalizedAngle < 112.5) || 
-                              (normalizedAngle >= 247.5 && normalizedAngle < 292.5)) {
-                        char = directionChars.vertical;
-                    } else {
-                        char = directionChars.diagonal2;
-                    }
-                }
-                
-                line.push(char);
-            }
-            artLines.push(line.join('').trimEnd());
-        }
-        
-        return artLines.join('\n');
-    }
 
-    processSobelToAsciiFill() {
-        const directionChars = ImageToAsciiProcessor.ASCII_MAPS.standardEdges;
-        const shading = this.settings.reverseIntensity 
-            ? ImageToAsciiProcessor.ASCII_MAPS.standardReversed 
-            : ImageToAsciiProcessor.ASCII_MAPS.standard;
-        const height = this.settings.imgHeight;
-        const width = this.settings.imgWidth;
-        
-        const pixels = this.guassianPixelLuminanceData;
-        const artLines = [];
-        
-        for (let y = 1; y < height - 1; y++) {
-            const line = [];
-            for (let x = 1; x < width - 1; x++) {
-                const pixelIndex = y * width + x;
-                
-                // Horizontal gradient
-                const gx = (
-                    -1 * pixels[pixelIndex - 1 - width] +
-                    1 * pixels[pixelIndex + 1 - width] +
-                    -2 * pixels[pixelIndex - 1] +
-                    2 * pixels[pixelIndex + 1] +
-                    -1 * pixels[pixelIndex - 1 + width] +
-                    1 * pixels[pixelIndex + 1 + width]
-                ) / 8;
-                
-                // Vertical gradient
-                const gy = (
-                    -1 * pixels[pixelIndex - width - 1] +
-                    -2 * pixels[pixelIndex - width] +
-                    -1 * pixels[pixelIndex - width + 1] +
-                    1 * pixels[pixelIndex + width - 1] +
-                    2 * pixels[pixelIndex + width] +
-                    1 * pixels[pixelIndex + width + 1]
-                ) / 8;
-                
-                const magnitude = Math.sqrt(gx * gx + gy * gy);
-                const angle = Math.atan2(gy, gx) * (180 / Math.PI);
-                
-                let char;
                 if (magnitude < 50) {
-                    const shadingIndex = Math.min(
-                        Math.floor(pixels[pixelIndex] / this.settings.asciiDivider),
-                        shading.length - 1
-                    );
-                    char = shading[shadingIndex];
-                } else {
-                    const normalizedAngle = angle < 0 ? angle + 360 : angle;
-                    
-                    if ((normalizedAngle >= 337.5 || normalizedAngle < 22.5) || 
-                        (normalizedAngle >= 157.5 && normalizedAngle < 202.5)) {
-                        char = directionChars.horizontal;
-                    } else if ((normalizedAngle >= 22.5 && angle < 67.5) || 
-                              (normalizedAngle >= 202.5 && normalizedAngle < 247.5)) {
-                        char = directionChars.diagonal1;
-                    } else if ((normalizedAngle >= 67.5 && normalizedAngle < 112.5) || 
-                              (normalizedAngle >= 247.5 && normalizedAngle < 292.5)) {
-                        char = directionChars.vertical;
-                    } else {
-                        char = directionChars.diagonal2;
-                    }
-                }
-                
-                line.push(char);
-            }
-            artLines.push(line.join('').trimEnd());
-        }
-        
-        return artLines.join('\n');
-    }
-
-    processSobelToBraille() {
-        const directionChars = ImageToAsciiProcessor.ASCII_MAPS.brailleEdges; 
-        const height = this.settings.imgHeight;
-        const width = this.settings.imgWidth;
-        
-        const pixels = this.guassianPixelLuminanceData;
-        const artLines = [];
-        
-        for (let y = 1; y < height - 1; y++) {
-            const line = [];
-            for (let x = 1; x < width - 1; x++) {
-                const pixelIndex = y * width + x;
-                
-                // Horizontal gradient
-                const gx = (
-                    -1 * pixels[pixelIndex - 1 - width] +
-                    1 * pixels[pixelIndex + 1 - width] +
-                    -2 * pixels[pixelIndex - 1] +
-                    2 * pixels[pixelIndex + 1] +
-                    -1 * pixels[pixelIndex - 1 + width] +
-                    1 * pixels[pixelIndex + 1 + width]
-                ) / 8;
-                
-                // Vertical gradient
-                const gy = (
-                    -1 * pixels[pixelIndex - width - 1] +
-                    -2 * pixels[pixelIndex - width] +
-                    -1 * pixels[pixelIndex - width + 1] +
-                    1 * pixels[pixelIndex + width - 1] +
-                    2 * pixels[pixelIndex + width] +
-                    1 * pixels[pixelIndex + width + 1]
-                ) / 8;
-                
-                const magnitude = Math.sqrt(gx * gx + gy * gy);
-                const angle = Math.atan2(gy, gx) * (180 / Math.PI);
-                
-                let char;
-                if (magnitude < 50) {
-                    char = directionChars.empty
+                    char = mode === 'fill' ? 
+                    shadingMap[Math.min(Math.floor(pixels[pixelIndex] / this.settings.asciiDivider), shadingMap.length - 1)] :
+                    directionChars.empty;
                 } else {
                     const normalizedAngle = angle < 0 ? angle + 360 : angle;
                     
@@ -571,23 +424,22 @@ class ImageToAsciiProcessor {
         switch (mode) {
             case 'grayscale':
                 return this.processToGrayscaleAscii();
+            case 'grayscaleBraille':
+                return this.processToGrayscaleAscii('braille')
             case 'color':
                 return this.processToColoredAscii();
             case 'colorBrightnessMap':
                 return this.processToBrightnessColoredAscii();
-            case 'grayscaleBraille':
-                return this.processToGrayscaleBraille()
             case 'edgeDetectionOutline':
-                return this.processSobelToAsciiOutline()
+                return this.processSobelToAscii()
             case 'edgeDetectionFill':
-                return this.processSobelToAsciiFill()
+                return this.processSobelToAscii('ascii', 'fill')
             case 'edgeDetectionBraille':
-                return this.processSobelToBraille()
+                return this.processSobelToAscii('braille', 'fill')
             default:
                 throw new Error(`Unsupported mode: ${mode}`);
         }
     }
 }
-
 
 export default ImageToAsciiProcessor;
