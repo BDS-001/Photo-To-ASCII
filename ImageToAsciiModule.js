@@ -401,7 +401,9 @@ class ImageToAsciiProcessor {
                 return this.processToGrayscaleAscii('braille')
             case 'color':
                 return this.processToColoredAscii();
-            case 'colorBrightnessMap':
+            case 'colorBrightnessMapAscii':
+                return this.processToColoredAscii('ascii', 'shading');
+            case 'colorBrightnessMapBraille':
                 return this.processToColoredAscii('braille', 'shading');
             case 'edgeDetectionOutline':
                 return this.processSobelToAscii()
