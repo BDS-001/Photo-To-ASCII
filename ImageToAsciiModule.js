@@ -321,7 +321,8 @@ class ImageToAsciiProcessor {
         return artLines.join('\n');
     }
     
-    processToColoredAscii() {
+    processToColoredAscii(charSet = 'ascii', mode = 'singleCharacter', char = '@') {
+        const shadingMap = mode === 'shading' ? this.shadingMap[charSet]() : null
         const pixelCount = this.pixelData.length / 4;
         const artLines = [];
     
@@ -332,36 +333,8 @@ class ImageToAsciiProcessor {
                 const red = this.pixelData[pixelIndex];
                 const green = this.pixelData[pixelIndex + 1];
                 const blue = this.pixelData[pixelIndex + 2];
-                line.push(`<span style="color: rgb(${red}, ${green}, ${blue})">@</span>`);
-            }
-            artLines.push(line.join(''));
-        }
-        return artLines.join('\n');
-    }
-    
-    processToBrightnessColoredAscii() {
-        const asciiIntensity = this.settings.reverseIntensity 
-            ? ImageToAsciiProcessor.ASCII_MAPS.standardReversed 
-            : ImageToAsciiProcessor.ASCII_MAPS.standard;
-        const artLines = [];
-    
-        for (let y = 0; y < this.pixelLuminanceData.length; y += this.settings.imgWidth) {
-            const line = [];
-            let whitespace = true;
-            for (let x = this.settings.imgWidth - 1; x >= 0; x--) {
-                const pixelIndex = (y + x) * 4;
-                const red = this.pixelData[pixelIndex];
-                const green = this.pixelData[pixelIndex + 1];
-                const blue = this.pixelData[pixelIndex + 2];
-                const charIndex = Math.min(
-                    Math.floor(this.pixelLuminanceData[y + x] / this.settings.asciiDivider), 
-                    asciiIntensity.length - 1
-                );
-                const character = asciiIntensity[charIndex];
-
-                if (whitespace && character.trim() === '') continue;
-                whitespace = false;
-                line.unshift(`<span style="color: rgb(${red}, ${green}, ${blue})">${character}</span>`);
+                const character = mode === 'singleCharacter' ? char : shadingMap[Math.min(Math.floor(this.pixelLuminanceData[y + x] / this.settings.asciiDivider), shadingMap.length - 1)]
+                line.push(`<span style="color: rgb(${red}, ${green}, ${blue})">${character}</span>`);
             }
             artLines.push(line.join(''));
         }
@@ -429,13 +402,13 @@ class ImageToAsciiProcessor {
             case 'color':
                 return this.processToColoredAscii();
             case 'colorBrightnessMap':
-                return this.processToBrightnessColoredAscii();
+                return this.processToColoredAscii('braille', 'shading');
             case 'edgeDetectionOutline':
                 return this.processSobelToAscii()
             case 'edgeDetectionFill':
                 return this.processSobelToAscii('ascii', 'fill')
             case 'edgeDetectionBraille':
-                return this.processSobelToAscii('braille', 'fill')
+                return this.processSobelToAscii('ascii', 'fill')
             default:
                 throw new Error(`Unsupported mode: ${mode}`);
         }
