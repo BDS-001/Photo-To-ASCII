@@ -99,7 +99,7 @@ class ImageToAsciiProcessor {
                     originalHeight: img.height,
                     pixelData: this.capturePixelData(img),
                     pixelLuminanceData: null,
-                    guassianPixelLuminanceData: null,
+                    gaussianPixelLuminanceData: null,
                 };
                 
                 this.settings.aspectRatio = img.width / img.height;
@@ -129,11 +129,11 @@ class ImageToAsciiProcessor {
         return this.settings.currentImage.pixelLuminanceData
     }
 
-    get guassianPixelLuminanceData() {
-        if (!this.settings.currentImage?.guassianPixelLuminanceData) {
-            this.settings.currentImage.guassianPixelLuminanceData = this.calculateLuminance(this.applyGuassianBlur())
+    get gaussianPixelLuminanceData() {
+        if (!this.settings.currentImage?.gaussianPixelLuminanceData) {
+            this.settings.currentImage.gaussianPixelLuminanceData = this.calculateLuminance(this.applyGaussianBlur())
         }
-        return this.settings.currentImage.guassianPixelLuminanceData
+        return this.settings.currentImage.gaussianPixelLuminanceData
     }
 
     get pixelData() {
@@ -191,7 +191,7 @@ class ImageToAsciiProcessor {
         return kernel;
     }
 
-    applyGuassianBlur(radius = 2) {
+    applyGaussianBlur(radius = 2) {
         const pixels = this.pixelData;
         const width = this.settings.imgWidth;
         const height = this.settings.imgHeight;
@@ -368,7 +368,7 @@ class ImageToAsciiProcessor {
         const height = this.settings.imgHeight;
         const width = this.settings.imgWidth;
         
-        const pixels = this.guassianPixelLuminanceData;
+        const pixels = this.gaussianPixelLuminanceData;
         const artLines = [];
         
         for (let y = 1; y < height - 1; y++) {
@@ -435,7 +435,7 @@ class ImageToAsciiProcessor {
         const height = this.settings.imgHeight;
         const width = this.settings.imgWidth;
         
-        const pixels = this.guassianPixelLuminanceData;
+        const pixels = this.gaussianPixelLuminanceData;
         const artLines = [];
         
         for (let y = 1; y < height - 1; y++) {
@@ -503,7 +503,7 @@ class ImageToAsciiProcessor {
         const height = this.settings.imgHeight;
         const width = this.settings.imgWidth;
         
-        const pixels = this.guassianPixelLuminanceData;
+        const pixels = this.gaussianPixelLuminanceData;
         const artLines = [];
         
         for (let y = 1; y < height - 1; y++) {
