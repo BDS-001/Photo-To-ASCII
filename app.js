@@ -410,7 +410,7 @@ class ImageToAsciiProcessor {
             case 'edgeDetectionFill':
                 return this.processSobelToAscii('ascii', 'fill')
             case 'edgeDetectionBraille':
-                return this.processSobelToAscii('ascii', 'fill')
+                return this.processSobelToAscii('braille', 'fill')
             default:
                 throw new Error(`Unsupported mode: ${mode}`);
         }
