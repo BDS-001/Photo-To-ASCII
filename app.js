@@ -345,11 +345,9 @@ class ImageToAsciiProcessor {
         return artLines.join('\n');
     }
 
-    processSobelToAsciiOutline() {
+    processSobelToAsciiOutline(charSet = 'ascii', mode = 'outline') {
         const directionChars = ImageToAsciiProcessor.ASCII_MAPS.standardEdges;
-        const shading = this.settings.reverseIntensity 
-            ? ImageToAsciiProcessor.ASCII_MAPS.standardReversed 
-            : ImageToAsciiProcessor.ASCII_MAPS.standard;
+        const shadingMap = mode === 'fill' ? this.shadingMap[mode]() : null
         const height = this.settings.imgHeight;
         const width = this.settings.imgWidth;
         
