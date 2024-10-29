@@ -392,9 +392,15 @@ class ImageToAsciiProcessor {
     // Main Processing Method
     //========================
     
-    async processImage(image, mode = this.settings.mode) {
-        await this.loadImage(image);
-        switch (mode) {
+    async processImage(options = {}) {
+        options = {
+            image : null, 
+            mode : this.settings.mode,
+            ...setting,
+            ...options
+        }
+        if (options.image) await this.loadImage(image);
+        switch (options.mode) {
             case 'grayscale':
                 return this.processToGrayscaleAscii();
             case 'grayscaleBraille':
