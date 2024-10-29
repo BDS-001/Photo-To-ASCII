@@ -43,7 +43,7 @@ class ImageToAsciiProcessor {
     constructor() {
         this.canvas = document.createElement('canvas');
         this.context = this.canvas.getContext('2d', {alpha: false, willReadFrequently: true})
-        this.currentImage = null,
+        this.currentImage = null;
         this.settings = {
             ...ImageToAsciiProcessor.DEFAULT_SETTINGS,
             aspectRatio: null,
@@ -55,10 +55,30 @@ class ImageToAsciiProcessor {
     // Settings Management
     //========================
     
+    validateDimensions(width, height) {
+        if (width < 1 || height < 1) {
+            throw new Error('Dimensions must be greater than 0');
+        }
+        if (width > 1000 || height > 1000) {
+            throw new Error('Dimensions must be less than 1000');
+        }
+    }
+
     updateSettings(setting, value) {
         if (!(setting in ImageToAsciiProcessor.DEFAULT_SETTINGS)) {
             throw new Error(`Invalid setting: ${setting}`);
         }
+
+        if (setting === 'imgWidth' || setting === 'imgHeight') {
+            this.validateDimensions(
+                setting === 'imgWidth' ? value : this.settings.imgWidth,
+                setting === 'imgHeight' ? value : this.settings.imgHeight
+            );
+        }
+        
+        const oldWidth = this.settings.imgWidth;
+        const oldHeight = this.settings.imgHeight;
+        
         this.settings[setting] = value;
 
         if (this.settings.aspectRatio && this.settings.maintainAspectRatio) {
@@ -69,6 +89,13 @@ class ImageToAsciiProcessor {
             } else if (setting === 'imgHeight') {
                 this.settings.imgWidth = Math.floor((this.settings.imgHeight * this.settings.aspectRatio) * 2);
             }
+        }
+
+        if (this.currentImage?.element && 
+            (this.settings.imgWidth !== oldWidth || this.settings.imgHeight !== oldHeight)) {
+            this.currentImage.pixelData = this.capturePixelData(this.currentImage.element);
+            this.currentImage.pixelLuminanceData = null;
+            this.currentImage.gaussianPixelLuminanceData = null;
         }
     }
 
@@ -86,6 +113,7 @@ class ImageToAsciiProcessor {
         if (this.currentImage) {
             this.currentImage.pixelData = null;
             this.currentImage.pixelLuminanceData = null;
+            this.currentImage.gaussianPixelLuminanceData = null;
             this.currentImage.element = null;
         }
 
@@ -150,6 +178,11 @@ class ImageToAsciiProcessor {
     //========================
     
     capturePixelData(img) {
+        if (this.currentImage) {
+            this.currentImage.pixelLuminanceData = null;
+            this.currentImage.gaussianPixelLuminanceData = null;
+        }
+
         this.canvas.width = this.settings.imgWidth;
         this.canvas.height = this.settings.imgHeight;
     
@@ -223,7 +256,7 @@ class ImageToAsciiProcessor {
             1 * pixels[pixelIndex + width + 1]
         ) / 8;
 
-        return {gx, gy }
+        return {gx, gy}
     }
 
     applyGaussianBlur(radius = 2) {
@@ -333,7 +366,7 @@ class ImageToAsciiProcessor {
             const line = [];
             for (let x = 0; x < this.settings.imgWidth; x++) {
                 const pixelIndex = (y + x) * 4;
-                const red = this.pixelData[pixelIndex];
+                const red = this.pixelData[pixelIndex + 0];
                 const green = this.pixelData[pixelIndex + 1];
                 const blue = this.pixelData[pixelIndex + 2];
                 const character = mode === 'singleCharacter' ? '@' : shadingMap[Math.min(Math.floor(this.pixelLuminanceData[y + x] / this.settings.asciiDivider), shadingMap.length - 1)]
@@ -402,16 +435,30 @@ class ImageToAsciiProcessor {
     }
     
     async processImage(process='grayscale', options = {}) {
-        options = {
-            image : null, 
-            ...this.settings,
-            ...options
-        }
-        if (options.image) await this.loadImage(options.image);
-        if (this.currentImage) {
-            const processor = this.processingMethods[process]
-            if (!processor) throw new Error(`Unsupported processing mode: ${options.process}`);
-            return processor(options)
+        try {
+            options = {
+                ...this.settings,
+                ...options
+            }
+    
+            if (options.image) {
+                await this.loadImage(options.image);
+                delete options.image;
+            }
+    
+            if (!this.currentImage) {
+                throw new Error('No image loaded');
+            }
+    
+            const processor = this.processingMethods[process];
+            if (!processor) {
+                throw new Error(`Unsupported processing mode: ${process}`);
+            }
+    
+            return processor(options);
+        } catch (error) {
+            console.error('Error processing image:', error);
+            throw error;
         }
     }
 }
@@ -455,74 +502,73 @@ class ImageToAsciiProcessor {
 
 
 
-
-
-
-
-
+//========================
+// DOM Setup & Event Handlers
+//========================
 
 document.addEventListener('DOMContentLoaded', () => {
     const ImageProcessor = new ImageToAsciiProcessor()
     let imageMode = 'grayscale'
 
     const domElements = {
-        imageUpload : document.getElementById('imageUpload'),
-        imgWidthInput : document.getElementById('imgWidth'),
-        imgHeightInput : document.getElementById('imgHeight'),
-        modeSelect : document.getElementById('mode'),
-        asciiDisplay : document.getElementById('art'),
-        imageSettings : document.getElementById('imageSettings'),
-        maintainAspectRatio : document.getElementById('maintainAspectRatio'),
-        fontSize : document.getElementById('fontSize')
-
+        imageUpload: document.getElementById('imageUpload'),
+        imgWidthInput: document.getElementById('imgWidth'),
+        imgHeightInput: document.getElementById('imgHeight'),
+        modeSelect: document.getElementById('mode'),
+        asciiDisplay: document.getElementById('art'),
+        imageSettings: document.getElementById('imageSettings'),
+        maintainAspectRatio: document.getElementById('maintainAspectRatio'),
+        fontSize: document.getElementById('fontSize')
     }
 
-    const handleModeChange = async (mode) => {
-        let process = 'grayscale';
-        const options = {};
+    domElements.imgWidthInput.value = ImageProcessor.settings.imgWidth;
+    domElements.imgHeightInput.value = ImageProcessor.settings.imgHeight;
 
+    const handleModeChange = async (mode) => {
         switch (mode) {
             case 'grayscale':
                 ImageProcessor.updateSettings('charSet', 'ascii');
+                imageMode = 'grayscale'
                 break;
                 
             case 'grayscaleBraille':
                 ImageProcessor.updateSettings('charSet', 'braille');
+                imageMode = 'grayscale'
                 break;
                 
             case 'color':
-                process = 'color';
                 ImageProcessor.updateSettings('mode', 'singleCharacter');
+                imageMode = 'color'
                 break;
                 
             case 'colorBrightnessMapAscii':
-                process = 'color';
                 ImageProcessor.updateSettings('charSet', 'ascii');
                 ImageProcessor.updateSettings('mode', 'shading');
+                imageMode = 'color'
                 break;
                 
             case 'colorBrightnessMapBraille':
-                process = 'color';
                 ImageProcessor.updateSettings('charSet', 'braille');
                 ImageProcessor.updateSettings('mode', 'shading');
+                imageMode = 'color'
                 break;
                 
             case 'edgeDetectionOutline':
-                process = 'edgeDetection';
                 ImageProcessor.updateSettings('charSet', 'ascii');
                 ImageProcessor.updateSettings('mode', 'outline');
+                imageMode = 'edgeDetection';
                 break;
                 
             case 'edgeDetectionFill':
-                process = 'edgeDetection';
                 ImageProcessor.updateSettings('charSet', 'ascii');
                 ImageProcessor.updateSettings('mode', 'fill');
+                imageMode = 'edgeDetection';
                 break;
                 
             case 'edgeDetectionBraille':
-                process = 'edgeDetection';
                 ImageProcessor.updateSettings('charSet', 'braille');
                 ImageProcessor.updateSettings('mode', 'fill');
+                imageMode = 'edgeDetection';
                 break;
                 
             default:
@@ -530,8 +576,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (domElements.imageUpload.files[0]) {
-            const artData = await ImageProcessor.processImage(process, options);
-            displayArt(artData);
+            try {
+                const artData = await ImageProcessor.processImage(imageMode);
+                displayArt(artData);
+            } catch (error) {
+                console.error('Error changing mode:', error);
+                alert('Failed to update image: ' + error.message);
+            }
         }
     }
 
@@ -544,48 +595,58 @@ document.addEventListener('DOMContentLoaded', () => {
         maintainAspectRatio: (e) => ImageProcessor.updateSettings(e.target.name, e.target.checked)
     }
     
-    domElements.imageSettings.addEventListener('change', handleSettingsChange)
-    domElements.imageUpload.addEventListener('change', handleImageUpload)
-    
     async function handleSettingsChange(e) {
-        if (e.target.name === 'fontSize') {
-            domElements.asciiDisplay.style.fontSize = `${e.target.value}px`
-            return
-        }
+        try {
+            if (e.target.name === 'fontSize') {
+                domElements.asciiDisplay.style.fontSize = `${e.target.value}px`;
+                return;
+            }
 
-        const handler = settingHandlers[e.target.name]
-        if (handler) {
-            handler(e)
-        } 
+            const handler = settingHandlers[e.target.name];
+            if (handler) {
+                await handler(e);
+            }
 
-        if ((e.target.name === 'imgWidth' || e.target.name === 'maintainAspectRatio') && domElements.maintainAspectRatio.checked) {
-            domElements.imgHeightInput.value = ImageProcessor.settings.imgHeight;
-        }
-        if (e.target.name === 'imgHeight' && domElements.maintainAspectRatio.checked) {
-            domElements.imgWidthInput.value = ImageProcessor.settings.imgWidth;
-        }
-       
-        if (domElements.imageUpload.files[0] && e.target.name !== 'mode') {
-            const artData = await ImageProcessor.processImage(imageMode);
-            displayArt(artData);
+            if ((e.target.name === 'imgWidth' || e.target.name === 'maintainAspectRatio') && 
+                domElements.maintainAspectRatio.checked) {
+                domElements.imgHeightInput.value = ImageProcessor.settings.imgHeight;
+            }
+            if (e.target.name === 'imgHeight' && domElements.maintainAspectRatio.checked) {
+                domElements.imgWidthInput.value = ImageProcessor.settings.imgWidth;
+            }
+
+            if (domElements.imageUpload.files[0] && e.target.name !== 'mode') {
+                const artData = await ImageProcessor.processImage(imageMode);
+                displayArt(artData);
+            }
+        } catch (error) {
+            console.error('Error updating settings:', error);
+            alert('Failed to update settings: ' + error.message);
         }
     }
 
     async function handleImageUpload(e) {
-        const imageFile = e.target.files[0]
-        if (!imageFile) return
+        const imageFile = e.target.files[0];
+        if (!imageFile) return;
+        
         if (!imageFile.type.startsWith('image/')) {
             alert('Please upload an image file');
             return;
         }
 
-        if (domElements.imageUpload.files[0]) {
-            const artData = await ImageProcessor.processImage(imageFile);
-            displayArt(artData)
+        try {
+            const artData = await ImageProcessor.processImage(imageMode, {image: imageFile});
+            displayArt(artData);
+        } catch (error) {
+            console.error('Error uploading image:', error);
+            alert('Failed to process image: ' + error.message);
         }
     }
     
     function displayArt(artData) {
         domElements.asciiDisplay.innerHTML = `<pre>${artData}</pre>`;
     }
+
+    domElements.imageSettings.addEventListener('change', handleSettingsChange);
+    domElements.imageUpload.addEventListener('change', handleImageUpload);
 });
