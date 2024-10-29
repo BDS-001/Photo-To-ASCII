@@ -505,148 +505,151 @@ class ImageToAsciiProcessor {
 //========================
 // DOM Setup & Event Handlers
 //========================
-
 document.addEventListener('DOMContentLoaded', () => {
-    const ImageProcessor = new ImageToAsciiProcessor()
-    let imageMode = 'grayscale'
+    const processor = new ImageToAsciiProcessor()
+    let currentMode = 'grayscale'
 
-    const domElements = {
-        imageUpload: document.getElementById('imageUpload'),
-        imgWidthInput: document.getElementById('imgWidth'),
-        imgHeightInput: document.getElementById('imgHeight'),
-        modeSelect: document.getElementById('mode'),
-        asciiDisplay: document.getElementById('art'),
-        imageSettings: document.getElementById('imageSettings'),
-        maintainAspectRatio: document.getElementById('maintainAspectRatio'),
+    const elements = {
+        upload: document.getElementById('imageUpload'),
+        width: document.getElementById('imgWidth'),
+        height: document.getElementById('imgHeight'),
+        mode: document.getElementById('mode'),
+        display: document.getElementById('art'),
+        settings: document.getElementById('imageSettings'),
+        aspectRatio: document.getElementById('maintainAspectRatio'),
         fontSize: document.getElementById('fontSize')
     }
 
-    domElements.imgWidthInput.value = ImageProcessor.settings.imgWidth;
-    domElements.imgHeightInput.value = ImageProcessor.settings.imgHeight;
+    elements.width.value = processor.settings.imgWidth
+    elements.height.value = processor.settings.imgHeight
 
-    const handleModeChange = async (mode) => {
-        switch (mode) {
-            case 'grayscale':
-                ImageProcessor.updateSettings('charSet', 'ascii');
-                imageMode = 'grayscale'
-                break;
-                
-            case 'grayscaleBraille':
-                ImageProcessor.updateSettings('charSet', 'braille');
-                imageMode = 'grayscale'
-                break;
-                
-            case 'color':
-                ImageProcessor.updateSettings('mode', 'singleCharacter');
-                imageMode = 'color'
-                break;
-                
-            case 'colorBrightnessMapAscii':
-                ImageProcessor.updateSettings('charSet', 'ascii');
-                ImageProcessor.updateSettings('mode', 'shading');
-                imageMode = 'color'
-                break;
-                
-            case 'colorBrightnessMapBraille':
-                ImageProcessor.updateSettings('charSet', 'braille');
-                ImageProcessor.updateSettings('mode', 'shading');
-                imageMode = 'color'
-                break;
-                
-            case 'edgeDetectionOutline':
-                ImageProcessor.updateSettings('charSet', 'ascii');
-                ImageProcessor.updateSettings('mode', 'outline');
-                imageMode = 'edgeDetection';
-                break;
-                
-            case 'edgeDetectionFill':
-                ImageProcessor.updateSettings('charSet', 'ascii');
-                ImageProcessor.updateSettings('mode', 'fill');
-                imageMode = 'edgeDetection';
-                break;
-                
-            case 'edgeDetectionBraille':
-                ImageProcessor.updateSettings('charSet', 'braille');
-                ImageProcessor.updateSettings('mode', 'fill');
-                imageMode = 'edgeDetection';
-                break;
-                
-            default:
-                throw new Error(`Unsupported mode: ${mode}`);
-        }
-
-        if (domElements.imageUpload.files[0]) {
-            try {
-                const artData = await ImageProcessor.processImage(imageMode);
-                displayArt(artData);
-            } catch (error) {
-                console.error('Error changing mode:', error);
-                alert('Failed to update image: ' + error.message);
-            }
+    const modes = {
+        grayscale: {
+            process: 'grayscale',
+            charSet: 'ascii'
+        },
+        grayscaleBraille: {
+            process: 'grayscale',
+            charSet: 'braille'
+        },
+        color: {
+            process: 'color',
+            mode: 'singleCharacter'
+        },
+        colorBrightnessMapAscii: {
+            process: 'color',
+            mode: 'shading',
+            charSet: 'ascii'
+        },
+        colorBrightnessMapBraille: {
+            process: 'color',
+            mode: 'shading',
+            charSet: 'braille'
+        },
+        edgeDetectionOutline: {
+            process: 'edgeDetection',
+            mode: 'outline',
+            charSet: 'ascii'
+        },
+        edgeDetectionFill: {
+            process: 'edgeDetection',
+            mode: 'fill',
+            charSet: 'ascii'
+        },
+        edgeDetectionBraille: {
+            process: 'edgeDetection',
+            mode: 'fill',
+            charSet: 'braille'
         }
     }
 
-    const settingHandlers = {
-        mode: (e) => handleModeChange(e.target.value),
-        imgWidth: (e) => ImageProcessor.updateSettings(e.target.name, parseInt(e.target.value)),
-        imgHeight: (e) => ImageProcessor.updateSettings(e.target.name, parseInt(e.target.value)),
-        contrastFactor: (e) => ImageProcessor.updateSettings(e.target.name, parseFloat(e.target.value)),
-        reverseIntensity: (e) => ImageProcessor.updateSettings(e.target.name, e.target.checked),
-        maintainAspectRatio: (e) => ImageProcessor.updateSettings(e.target.name, e.target.checked)
+    const settings = {
+        mode: (value) => {
+            currentMode = value
+            return true
+        },
+        imgWidth: (value) => {
+            processor.updateSettings('imgWidth', parseInt(value))
+            return true
+        },
+        imgHeight: (value) => {
+            processor.updateSettings('imgHeight', parseInt(value))
+            return true
+        },
+        contrastFactor: (value) => {
+            processor.updateSettings('contrastFactor', parseFloat(value))
+            return true
+        },
+        reverseIntensity: (value) => {
+            processor.updateSettings('reverseIntensity', value)
+            return true
+        },
+        maintainAspectRatio: (value) => {
+            processor.updateSettings('maintainAspectRatio', value)
+            return true
+        },
+        fontSize: (value) => {
+            elements.display.style.fontSize = `${value}px`
+            return false
+        }
     }
-    
-    async function handleSettingsChange(e) {
+
+    async function updateImage(imageFile = null) {
         try {
-            if (e.target.name === 'fontSize') {
-                domElements.asciiDisplay.style.fontSize = `${e.target.value}px`;
-                return;
+            const options = {
+                ...modes[currentMode],
+                ...(imageFile && { image: imageFile })
             }
+            
+            const art = await processor.processImage(options.process, options)
+            elements.display.innerHTML = `<pre>${art}</pre>`
+        } catch (error) {
+            console.error('Processing failed:', error)
+            alert('Failed to process image: ' + error.message)
+        }
+    }
 
-            const handler = settingHandlers[e.target.name];
-            if (handler) {
-                await handler(e);
+    function updateDimensions() {
+        if (elements.aspectRatio.checked) {
+            if (event.target.name === 'imgWidth') {
+                elements.height.value = processor.settings.imgHeight
+            } else {
+                elements.width.value = processor.settings.imgWidth
             }
+        }
+    }
 
-            if ((e.target.name === 'imgWidth' || e.target.name === 'maintainAspectRatio') && 
-                domElements.maintainAspectRatio.checked) {
-                domElements.imgHeightInput.value = ImageProcessor.settings.imgHeight;
-            }
-            if (e.target.name === 'imgHeight' && domElements.maintainAspectRatio.checked) {
-                domElements.imgWidthInput.value = ImageProcessor.settings.imgWidth;
-            }
+    async function handleSettings(event) {
+        try {
+            const handler = settings[event.target.name]
+            if (!handler) return
 
-            if (domElements.imageUpload.files[0] && e.target.name !== 'mode') {
-                const artData = await ImageProcessor.processImage(imageMode);
-                displayArt(artData);
+            const shouldUpdate = handler(event.target.type === 'checkbox' ? 
+                event.target.checked : event.target.value)
+            
+            updateDimensions()
+
+            if (shouldUpdate && elements.upload.files[0]) {
+                await updateImage()
             }
         } catch (error) {
-            console.error('Error updating settings:', error);
-            alert('Failed to update settings: ' + error.message);
+            console.error('Settings update failed:', error)
+            alert('Failed to update settings: ' + error.message)
         }
     }
 
-    async function handleImageUpload(e) {
-        const imageFile = e.target.files[0];
-        if (!imageFile) return;
+    async function handleUpload(event) {
+        const file = event.target.files[0]
+        if (!file) return
         
-        if (!imageFile.type.startsWith('image/')) {
-            alert('Please upload an image file');
-            return;
+        if (!file.type.startsWith('image/')) {
+            alert('Please upload an image file')
+            return
         }
 
-        try {
-            const artData = await ImageProcessor.processImage(imageMode, {image: imageFile});
-            displayArt(artData);
-        } catch (error) {
-            console.error('Error uploading image:', error);
-            alert('Failed to process image: ' + error.message);
-        }
-    }
-    
-    function displayArt(artData) {
-        domElements.asciiDisplay.innerHTML = `<pre>${artData}</pre>`;
+        await updateImage(file)
     }
 
-    domElements.imageSettings.addEventListener('change', handleSettingsChange);
-    domElements.imageUpload.addEventListener('change', handleImageUpload);
-});
+    elements.settings.addEventListener('change', handleSettings)
+    elements.upload.addEventListener('change', handleUpload)
+})
