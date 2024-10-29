@@ -110,13 +110,6 @@ class ImageToAsciiProcessor {
             URL.revokeObjectURL(this.currentImage.element.src);
         }
 
-        if (this.currentImage) {
-            this.currentImage.pixelData = null;
-            this.currentImage.pixelLuminanceData = null;
-            this.currentImage.gaussianPixelLuminanceData = null;
-            this.currentImage.element = null;
-        }
-
         return new Promise((resolve, reject) => {
             const img = new Image();
             const objectUrl = URL.createObjectURL(file)
@@ -127,7 +120,7 @@ class ImageToAsciiProcessor {
                     element: img,
                     originalWidth: img.width,
                     originalHeight: img.height,
-                    pixelData: this.capturePixelData(img),
+                    pixelData: null,
                     pixelLuminanceData: null,
                     gaussianPixelLuminanceData: null,
                 };
@@ -137,6 +130,8 @@ class ImageToAsciiProcessor {
                 if (this.settings.maintainAspectRatio) {
                     this.settings.imgHeight = Math.floor((this.settings.imgWidth / this.settings.aspectRatio) / 2);
                 }
+
+                this.currentImage.pixelData = this.capturePixelData(img);
 
                 URL.revokeObjectURL(objectUrl)
                 resolve(img);
@@ -586,6 +581,9 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         maintainAspectRatio: (value) => {
             processor.updateSettings('maintainAspectRatio', value)
+            if (value) {
+                elements.height.value = processor.settings.imgHeight
+            }
             return true
         },
         fontSize: (value) => {
@@ -597,8 +595,11 @@ document.addEventListener('DOMContentLoaded', () => {
     async function updateImage(imageFile = null) {
         try {
             const options = {
-                ...modes[currentMode],
-                ...(imageFile && { image: imageFile })
+                ...modes[currentMode]
+            }
+            
+            if (imageFile) {
+                await processor.loadImage(imageFile);
             }
             
             const art = await processor.processImage(options.process, options)
@@ -609,7 +610,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function updateDimensions() {
+    function updateDimensions(event) {
         if (elements.aspectRatio.checked) {
             if (event.target.name === 'imgWidth') {
                 elements.height.value = processor.settings.imgHeight
@@ -627,7 +628,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const shouldUpdate = handler(event.target.type === 'checkbox' ? 
                 event.target.checked : event.target.value)
             
-            updateDimensions()
+            updateDimensions(event)
 
             if (shouldUpdate && elements.upload.files[0]) {
                 await updateImage()
