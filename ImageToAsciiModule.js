@@ -26,12 +26,14 @@ class ImageToAsciiProcessor {
     }
 
     static DEFAULT_SETTINGS = {
-        mode: 'grayscale',
+        process: 'grayscale',
+        mode: null,
         imgWidth: 150,
         imgHeight: 150,
         contrastFactor: 1,
         reverseIntensity : false,
-        maintainAspectRatio : false
+        maintainAspectRatio : false,
+        charSet: 'ascii'
     } 
 
     //========================
@@ -41,10 +43,10 @@ class ImageToAsciiProcessor {
     constructor() {
         this.canvas = document.createElement('canvas');
         this.context = this.canvas.getContext('2d', {alpha: false, willReadFrequently: true})
+        this.currentImage = null;
         this.settings = {
             ...ImageToAsciiProcessor.DEFAULT_SETTINGS,
             aspectRatio: null,
-            currentImage: null,
             asciiDivider: Math.floor(255 / (ImageToAsciiProcessor.ASCII_MAPS.standard.length - 1))
         }
     }
@@ -53,10 +55,30 @@ class ImageToAsciiProcessor {
     // Settings Management
     //========================
     
+    validateDimensions(width, height) {
+        if (width < 1 || height < 1) {
+            throw new Error('Dimensions must be greater than 0');
+        }
+        if (width > 1000 || height > 1000) {
+            throw new Error('Dimensions must be less than 1000');
+        }
+    }
+
     updateSettings(setting, value) {
         if (!(setting in ImageToAsciiProcessor.DEFAULT_SETTINGS)) {
             throw new Error(`Invalid setting: ${setting}`);
         }
+
+        if (setting === 'imgWidth' || setting === 'imgHeight') {
+            this.validateDimensions(
+                setting === 'imgWidth' ? value : this.settings.imgWidth,
+                setting === 'imgHeight' ? value : this.settings.imgHeight
+            );
+        }
+        
+        const oldWidth = this.settings.imgWidth;
+        const oldHeight = this.settings.imgHeight;
+        
         this.settings[setting] = value;
 
         if (this.settings.aspectRatio && this.settings.maintainAspectRatio) {
@@ -68,6 +90,13 @@ class ImageToAsciiProcessor {
                 this.settings.imgWidth = Math.floor((this.settings.imgHeight * this.settings.aspectRatio) * 2);
             }
         }
+
+        if (this.currentImage?.element && 
+            (this.settings.imgWidth !== oldWidth || this.settings.imgHeight !== oldHeight)) {
+            this.currentImage.pixelData = this.capturePixelData(this.currentImage.element);
+            this.currentImage.pixelLuminanceData = null;
+            this.currentImage.gaussianPixelLuminanceData = null;
+        }
     }
 
     //========================
@@ -77,14 +106,8 @@ class ImageToAsciiProcessor {
     async loadImage(file) {
         if (!file) throw new Error('No file provided');
 
-        if (this.settings.currentImage?.element?.src) {
-            URL.revokeObjectURL(this.settings.currentImage.element.src);
-        }
-
-        if (this.settings.currentImage) {
-            this.settings.currentImage.pixelData = null;
-            this.settings.currentImage.pixelLuminanceData = null;
-            this.settings.currentImage.element = null;
+        if (this.currentImage?.element?.src) {
+            URL.revokeObjectURL(this.currentImage.element.src);
         }
 
         return new Promise((resolve, reject) => {
@@ -92,12 +115,12 @@ class ImageToAsciiProcessor {
             const objectUrl = URL.createObjectURL(file)
             
             img.onload = () => {
-                this.settings.currentImage = {
+                this.currentImage = {
                     file: file,
                     element: img,
                     originalWidth: img.width,
                     originalHeight: img.height,
-                    pixelData: this.capturePixelData(img),
+                    pixelData: null,
                     pixelLuminanceData: null,
                     gaussianPixelLuminanceData: null,
                 };
@@ -107,6 +130,8 @@ class ImageToAsciiProcessor {
                 if (this.settings.maintainAspectRatio) {
                     this.settings.imgHeight = Math.floor((this.settings.imgWidth / this.settings.aspectRatio) / 2);
                 }
+
+                this.currentImage.pixelData = this.capturePixelData(img);
 
                 URL.revokeObjectURL(objectUrl)
                 resolve(img);
@@ -123,24 +148,24 @@ class ImageToAsciiProcessor {
     //========================
     
     get pixelLuminanceData() {
-        if (!this.settings.currentImage?.pixelLuminanceData) {
-            this.settings.currentImage.pixelLuminanceData = this.calculateLuminance(this.pixelData)
+        if (!this.currentImage?.pixelLuminanceData) {
+            this.currentImage.pixelLuminanceData = this.calculateLuminance(this.pixelData)
         }
-        return this.settings.currentImage.pixelLuminanceData
+        return this.currentImage.pixelLuminanceData
     }
 
     get gaussianPixelLuminanceData() {
-        if (!this.settings.currentImage?.gaussianPixelLuminanceData) {
-            this.settings.currentImage.gaussianPixelLuminanceData = this.calculateLuminance(this.applyGaussianBlur())
+        if (!this.currentImage?.gaussianPixelLuminanceData) {
+            this.currentImage.gaussianPixelLuminanceData = this.calculateLuminance(this.applyGaussianBlur())
         }
-        return this.settings.currentImage.gaussianPixelLuminanceData
+        return this.currentImage.gaussianPixelLuminanceData
     }
 
     get pixelData() {
-        if (!this.settings.currentImage?.pixelData) {
+        if (!this.currentImage?.pixelData) {
             throw new Error('No image data available');
         }
-        return this.settings.currentImage.pixelData
+        return this.currentImage.pixelData
     }
 
     //========================
@@ -148,6 +173,11 @@ class ImageToAsciiProcessor {
     //========================
     
     capturePixelData(img) {
+        if (this.currentImage) {
+            this.currentImage.pixelLuminanceData = null;
+            this.currentImage.gaussianPixelLuminanceData = null;
+        }
+
         this.canvas.width = this.settings.imgWidth;
         this.canvas.height = this.settings.imgHeight;
     
@@ -221,7 +251,7 @@ class ImageToAsciiProcessor {
             1 * pixels[pixelIndex + width + 1]
         ) / 8;
 
-        return {gx, gy }
+        return {gx, gy}
     }
 
     applyGaussianBlur(radius = 2) {
@@ -292,9 +322,9 @@ class ImageToAsciiProcessor {
     // ASCII Conversion Methods
     //========================
 
-    processToGrayscaleAscii(charSet = 'ascii') {
-        const shadingMap = this.shadingMap[charSet]()
-        const whiteSpaceChar = charSet === 'ascii' ? ' ' : '⠀'
+    processToGrayscaleAscii(options = {}) {
+        const shadingMap = this.shadingMap[options.charSet]()
+        const whiteSpaceChar = options.charSet === 'ascii' ? ' ' : '⠀'
         
         const contrastedData = this.applyContrast();
         const artLines = [];
@@ -321,8 +351,9 @@ class ImageToAsciiProcessor {
         return artLines.join('\n');
     }
     
-    processToColoredAscii(charSet = 'ascii', mode = 'singleCharacter', char = '@') {
-        const shadingMap = mode === 'shading' ? this.shadingMap[charSet]() : null
+    processToColoredAscii(options = {}) {
+        const mode = options.mode || 'singleCharacter'
+        const shadingMap = mode === 'shading' ? this.shadingMap[options.charSet]() : null
         const pixelCount = this.pixelData.length / 4;
         const artLines = [];
     
@@ -330,10 +361,10 @@ class ImageToAsciiProcessor {
             const line = [];
             for (let x = 0; x < this.settings.imgWidth; x++) {
                 const pixelIndex = (y + x) * 4;
-                const red = this.pixelData[pixelIndex];
+                const red = this.pixelData[pixelIndex + 0];
                 const green = this.pixelData[pixelIndex + 1];
                 const blue = this.pixelData[pixelIndex + 2];
-                const character = mode === 'singleCharacter' ? char : shadingMap[Math.min(Math.floor(this.pixelLuminanceData[y + x] / this.settings.asciiDivider), shadingMap.length - 1)]
+                const character = mode === 'singleCharacter' ? '@' : shadingMap[Math.min(Math.floor(this.pixelLuminanceData[y + x] / this.settings.asciiDivider), shadingMap.length - 1)]
                 line.push(`<span style="color: rgb(${red}, ${green}, ${blue})">${character}</span>`);
             }
             artLines.push(line.join(''));
@@ -341,9 +372,10 @@ class ImageToAsciiProcessor {
         return artLines.join('\n');
     }
 
-    processSobelToAscii(charSet = 'ascii', mode = 'outline') {
-        const directionChars = charSet === 'ascii' ? ImageToAsciiProcessor.ASCII_MAPS.standardEdges : ImageToAsciiProcessor.ASCII_MAPS.brailleEdges;
-        const shadingMap = this.shadingMap[charSet]()
+    processSobelToAscii(options = {}) {
+        const mode = options.mode || 'outline'
+        const directionChars = options.charSet === 'ascii' ? ImageToAsciiProcessor.ASCII_MAPS.standardEdges : ImageToAsciiProcessor.ASCII_MAPS.brailleEdges;
+        const shadingMap = this.shadingMap[options.charSet]()
         const height = this.settings.imgHeight;
         const width = this.settings.imgWidth;
         
@@ -391,28 +423,37 @@ class ImageToAsciiProcessor {
     //========================
     // Main Processing Method
     //========================
+    processingMethods = {
+        grayscale: (options) => this.processToGrayscaleAscii(options),
+        color: (options) => this.processToColoredAscii(options),
+        edgeDetection: (options) => this.processSobelToAscii(options)
+    }
     
-    async processImage(image, mode = this.settings.mode) {
-        await this.loadImage(image);
-        switch (mode) {
-            case 'grayscale':
-                return this.processToGrayscaleAscii();
-            case 'grayscaleBraille':
-                return this.processToGrayscaleAscii('braille')
-            case 'color':
-                return this.processToColoredAscii();
-            case 'colorBrightnessMapAscii':
-                return this.processToColoredAscii('ascii', 'shading');
-            case 'colorBrightnessMapBraille':
-                return this.processToColoredAscii('braille', 'shading');
-            case 'edgeDetectionOutline':
-                return this.processSobelToAscii()
-            case 'edgeDetectionFill':
-                return this.processSobelToAscii('ascii', 'fill')
-            case 'edgeDetectionBraille':
-                return this.processSobelToAscii('braille', 'fill')
-            default:
-                throw new Error(`Unsupported mode: ${mode}`);
+    async processImage(process='grayscale', options = {}) {
+        try {
+            options = {
+                ...this.settings,
+                ...options
+            }
+    
+            if (options.image) {
+                await this.loadImage(options.image);
+                delete options.image;
+            }
+    
+            if (!this.currentImage) {
+                throw new Error('No image loaded');
+            }
+    
+            const processor = this.processingMethods[process];
+            if (!processor) {
+                throw new Error(`Unsupported processing mode: ${process}`);
+            }
+    
+            return processor(options);
+        } catch (error) {
+            console.error('Error processing image:', error);
+            throw error;
         }
     }
 }
