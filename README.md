@@ -20,7 +20,7 @@ A JavaScript library that transforms images into ASCII art with multiple renderi
 
 ## Demo
 
-[Add your demo link here]
+https://bds-001.github.io/Photo-To-ASCII/
 
 ## Installation
 
