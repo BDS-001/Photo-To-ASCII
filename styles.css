@@ -7,6 +7,7 @@
     --accent-color: #89b4fa;
     --shadow-color: rgba(0, 0, 0, 0.2);
     --accent-shadow: rgba(137, 180, 250, 0.2);
+    --transition: 0.2s ease;
 }
 
 
@@ -21,25 +22,29 @@ body {
     background-color: var(--bg-primary);
     color: var(--text-primary);
     min-height: 100vh;
-    padding: 2rem;
+    padding: 1rem;
 }
 
 main {
     margin: 0 auto;
     display: flex;
-    gap: 2rem;
+    gap: 1.5rem;
     flex-wrap: wrap;
+    max-height: calc(100vh - 2rem);
+    overflow-y: auto;
 }
 
 /* form styles */
 
 form {
     background-color: var(--bg-secondary);
-    padding: 1.5rem;
+    padding: 1rem;
     border-radius: 12px;
     box-shadow: 0 4px 20px var(--shadow-color);
     min-width: 300px;
     flex: 0 1 auto;
+    max-height: calc(100vh - 2rem);
+    overflow-y: auto;
 }
 
 .setting {
@@ -65,13 +70,6 @@ input[type="file"] {
     font-size: 1.1rem;
 }
 
-input[type="number"] {
-    position: relative;
-    padding-right: 3rem;
-    height: 3rem;
-}
-
-
 input[type="number"],
 select {
     width: 100%;
@@ -81,7 +79,7 @@ select {
     border-radius: 6px;
     color: var(--text-primary);
     font-size: 1.1rem;
-    transition: border-color 0.2s, box-shadow 0.2s;
+    transition: border-color var(--transition), box-shadow var(--transition);
 }
 
 input[type="number"]:focus,
@@ -104,24 +102,23 @@ input[type="checkbox"] {
     background-color: var(--bg-primary);
     cursor: pointer;
     vertical-align: middle;
-    transition: background-color 0.2s, border-color 0.2s;
+    transition: background-color var(--transition), border-color var(--transition);
 }
 
 input[type="checkbox"]:checked {
     background-color: var(--accent-color);
     border-color: var(--accent-color);
-    position: relative;
 }
 
 input[type="checkbox"]:checked::after {
     content: '✓';
-    position: absolute;
     color: var(--bg-primary);
     font-size: 1.2rem;
     font-weight: bold;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
 }
 
 input[type="checkbox"]:focus {
@@ -130,13 +127,13 @@ input[type="checkbox"]:focus {
     box-shadow: 0 0 0 3px var(--accent-shadow);
 }
 
-.setting:has(input[type="checkbox"]) {
+.checkbox-setting {
     display: flex;
     align-items: center;
     gap: 0.8rem;
 }
 
-.setting:has(input[type="checkbox"]) label {
+.checkbox-setting label {
     margin-bottom: 0;
     flex: 1;
 }
@@ -158,7 +155,7 @@ legend {
 
 fieldset:hover {
     border-color: var(--accent-color);
-    transition: border-color 0.2s ease;
+    transition: border-color var(--transition);
 }
 
 fieldset .setting:last-child {
@@ -168,7 +165,7 @@ fieldset .setting:last-child {
 /* Art output area */
 .artContainer {
     background-color: var(--bg-secondary);
-    padding: 1.5rem;
+    padding: 1rem;
     border-radius: 12px;
     box-shadow: 0 4px 20px var(--shadow-color);
     flex: 1;
@@ -178,6 +175,7 @@ fieldset .setting:last-child {
     text-align: center;
     display: flex;
     justify-content: center;
+    max-height: calc(100vh - 2rem);
 }
 
 #art {
@@ -187,12 +185,27 @@ fieldset .setting:last-child {
 /* screen size styles */
 @media (max-width: 768px) {
     body {
-        padding: 1rem;
+        padding: 0.5rem;
     }
     main {
         gap: 1rem;
+        max-height: none;
+        min-height: 100vh;
+        flex-direction: column;
+        overflow-y: auto;
     }
-    form, #art {
+    form, .artContainer {
         min-width: 100%;
+        max-height: none;
+        flex-shrink: 0;
+    }
+    form {
+        order: 1;
+        position: relative;
+    }
+    .artContainer {
+        order: 2;
+        min-height: 300px;
+        flex-grow: 1;
     }
 }
